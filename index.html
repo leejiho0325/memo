@@ -498,9 +498,9 @@ function formatDate(iso) {
 function render() {
   const total = places.length;
   const visited = places.filter(p => p.visited).length;
-  document.getElementById('hstat-total').textContent = total;
-  document.getElementById('hstat-remain').textContent = total - visited;
-  document.getElementById('hstat-visited').textContent = visited;
+  if (document.getElementById('hstat-total')) document.getElementById('hstat-total').textContent = total;
+  if (document.getElementById('hstat-remain')) document.getElementById('hstat-remain').textContent = total - visited;
+  if (document.getElementById('hstat-visited')) document.getElementById('hstat-visited').textContent = visited;
 
   let filtered = places;
   if (filter === '✅') filtered = places.filter(p => p.visited);
