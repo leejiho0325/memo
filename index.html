@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>메모장</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  :root {
+    --pink: #c4b5fd;
+    --pink-dark: #7c3aed;
+    --pink-light: #f5f3ff;
+    --cream: #faf9ff;
+    --brown: #3b0764;
+    --brown-light: #7e22ce;
+    --text: #1e1b2e;
+    --text-muted: #9474c0;
+    --border: #e9d5ff;
+    --white: #ffffff;
+    --shadow: rgba(124,58,237,0.1);
+    --green: #1D9E75;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Gowun Dodum', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-emoji { font-size: 28px; }
+  .header-text h1 { font-family: 'Nanum Myeongjo', serif; font-size: 20px; font-weight: 700; color: var(--brown); }
+  .header-text p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .header-stats { margin-left: auto; display: flex; gap: 16px; }
+  .hstat { text-align: center; }
+  .hstat-num { font-size: 18px; font-weight: 700; color: var(--pink-dark); }
+  .hstat-label { font-size: 11px; color: var(--text-muted); }
+
+  main { max-width: 720px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  /* ADD BOX */
+  .add-box {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .add-box-title { font-size: 13px; font-weight: 700; color: var(--brown); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .field-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; margin-top: 12px; }
+  .field-label:first-of-type { margin-top: 0; }
+  input, select, textarea {
+    width: 100%; padding: 10px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--pink-light);
+    color: var(--text); font-family: 'Gowun Dodum', sans-serif; font-size: 14px;
+    outline: none; transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--pink); }
+  textarea { resize: none; height: 56px; line-height: 1.5; }
+  .row2 { display: flex; gap: 10px; }
+  .row2 > div { flex: 1; }
+  .link-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .link-hint.ok { color: var(--green); }
+  .link-hint.info { color: #378ADD; }
+  .btn-add {
+    width: 100%; margin-top: 14px; padding: 12px;
+    background: linear-gradient(135deg, #a78bfa, #7c3aed);
+    color: white; border: none; border-radius: 12px;
+    font-family: 'Gowun Dodum', sans-serif; font-size: 15px;
+    cursor: pointer; transition: opacity 0.2s;
+  }
+  .btn-add:hover { opacity: 0.88; }
+
+  /* CONFIG BOX */
+  .config-box {
+    background: var(--pink-light);
+    border: 1px dashed var(--pink);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--brown-light);
+  }
+  .config-box strong { color: var(--brown); }
+  .config-box input { background: white; margin-top: 6px; font-size: 12px; padding: 7px 10px; }
+  .config-box .btn-save-config {
+    margin-top: 8px; padding: 7px 18px; background: var(--pink-dark);
+    color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;
+    font-family: 'Gowun Dodum', sans-serif;
+  }
+  .config-done { color: var(--green); font-size: 12px; margin-top: 6px; display: none; }
+
+  /* MAP */
+  .map-wrap {
+    border-radius: 16px; overflow: hidden;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+    position: relative;
+    height: 320px;
+  }
+  #map { width: 100%; height: 100%; }
+  .map-empty {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 13px; gap: 8px;
+    pointer-events: none; background: var(--pink-light);
+  }
+  .map-empty-icon { font-size: 36px; }
+
+  /* MAP POPUP */
+  .leaflet-popup-content-wrapper {
+    border-radius: 12px !important; border: 1px solid var(--border) !important;
+    box-shadow: 0 4px 20px var(--shadow) !important;
+    font-family: 'Gowun Dodum', sans-serif !important;
+  }
+  .leaflet-popup-content { margin: 10px 14px !important; font-size: 13px !important; color: var(--text) !important; }
+  .popup-name { font-weight: 700; font-size: 14px; color: var(--brown); margin-bottom: 2px; }
+  .popup-addr { color: var(--text-muted); font-size: 12px; }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .fbtn {
+    padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--white); color: var(--text-muted); font-size: 12px;
+    cursor: pointer; font-family: 'Gowun Dodum', sans-serif; transition: all 0.15s;
+  }
+  .fbtn.active { background: var(--pink-dark); color: white; border-color: var(--pink-dark); }
+
+  /* CARDS */
+  .place-list { display: flex; flex-direction: column; gap: 10px; }
+  .place-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 16px;
+    display: flex; align-items: flex-start; gap: 12px;
+    cursor: pointer; transition: border-color 0.15s, transform 0.1s;
+  }
+  .place-card:hover { border-color: var(--pink); transform: translateY(-1px); }
+  .place-card.visited { opacity: 0.55; }
+  .place-card.focused { border-color: var(--pink-dark); border-width: 1.5px; }
+  .cat-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+  .pinfo { flex: 1; min-width: 0; }
+  .pname { font-size: 15px; font-weight: 700; color: var(--brown); }
+  .paddr { font-size: 12px; color: var(--text-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pmemo { font-size: 13px; color: var(--text-muted); margin-top: 5px; font-style: italic; }
+  .plinks { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
+  .ptag {
+    font-size: 11px; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--text-muted);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+    background: var(--pink-light);
+  }
+  .ptag:hover { background: var(--border); }
+  .pmeta { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+  .pactions { display: flex; flex-direction: column; gap: 6px; align-items: center; flex-shrink: 0; }
+  .iBtn {
+    background: none; border: none; cursor: pointer; font-size: 18px;
+    color: var(--text-muted); padding: 4px; border-radius: 8px; line-height: 1;
+    transition: background 0.15s;
+  }
+  .iBtn:hover { background: var(--pink-light); }
+  .iBtn.done { color: var(--green); }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+  .empty-state .big { font-size: 40px; display: block; margin-bottom: 10px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--brown); color: white; padding: 10px 22px;
+    border-radius: 999px; font-size: 13px; z-index: 999;
+    transition: transform 0.3s; pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  
+  <div class="header-text">
+    <h1>메모장</h1>
+    
+  </div>
+
+</header>
+
+<main>
+  <!-- Supabase Config -->
+  <div class="config-box" id="config-box">
+    <strong>⚙️ Supabase 연결 설정</strong> (처음 한 번만)<br>
+    아래에 Supabase URL과 anon key를 넣어주세요.
+    <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co" />
+    <input type="text" id="cfg-key" placeholder="eyJ... (anon key)" />
+    <br><button class="btn-save-config" onclick="saveConfig()">저장하기</button>
+    <div class="config-done" id="config-done">✅ 연결됐어요! 새로고침하면 사라져요.</div>
+  </div>
+
+  <!-- Add Form -->
+  <div class="add-box">
+    <div class="add-box-title">📍 새 장소 추가</div>
+    <div class="field-label">🔗 링크 (카카오맵 / 인스타 / 네이버맵)</div>
+    <input type="text" id="inp-link" placeholder="https://..." oninput="onLinkInput(this.value)"/>
+    <div class="link-hint" id="link-hint">카카오맵 링크를 붙여넣으면 자동입력 시도해요</div>
+    <div class="row2">
+      <div>
+        <div class="field-label">장소 이름 *</div>
+        <input type="text" id="inp-name" placeholder="장소 이름"/>
+      </div>
+      <div>
+        <div class="field-label">카테고리</div>
+        <select id="inp-cat">
+          <option value="🍽️">🍽️ 음식</option>
+          <option value="☕">☕ 카페</option>
+          <option value="🎡">🎡 놀거리</option>
+          <option value="🛍️">🛍️ 쇼핑</option>
+          <option value="🌿">🌿 자연</option>
+          <option value="🎬">🎬 문화</option>
+          <option value="📍">📍 기타</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-label">주소 / 지역 (지도에 표시돼요)</div>
+    <input type="text" id="inp-addr" placeholder="예: 서울 마포구 연남동"/>
+    <div class="field-label">메모</div>
+    <textarea id="inp-memo" placeholder="메모..."></textarea>
+    <button class="btn-add" onclick="addPlace()">저장하기</button>
+  </div>
+
+  <!-- MAP -->
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="map-empty" id="map-empty">
+      <span class="map-empty-icon">🗺️</span>
+      주소를 입력하면 지도에 표시돼요
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <button class="fbtn active" onclick="setFilter('전체',this)">전체</button>
+    <button class="fbtn" onclick="setFilter('🍽️',this)">🍽️ 음식</button>
+    <button class="fbtn" onclick="setFilter('☕',this)">☕ 카페</button>
+    <button class="fbtn" onclick="setFilter('🎡',this)">🎡 놀거리</button>
+    <button class="fbtn" onclick="setFilter('🛍️',this)">🛍️ 쇼핑</button>
+    <button class="fbtn" onclick="setFilter('🌿',this)">🌿 자연</button>
+    <button class="fbtn" onclick="setFilter('🎬',this)">🎬 문화</button>
+    <button class="fbtn" onclick="setFilter('✅',this)">✅ 다녀온 곳</button>
+  </div>
+
+  <div class="place-list" id="place-list"></div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const { createClient } = supabase;
+
+let sb = null;
+let places = [];
+let filter = '전체';
+let map = null;
+let markers = [];
+let geocodeCache = {};
+
+function getConfig() {
+  return {
+    url: localStorage.getItem('sb_url') || '',
+    key: localStorage.getItem('sb_key') || ''
+  };
+}
+
+function saveConfig() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { showToast('URL과 Key를 모두 입력해주세요'); return; }
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  document.getElementById('config-done').style.display = 'block';
+  showToast('✅ 저장됐어요! 새로고침해주세요');
+  setTimeout(() => location.reload(), 1200);
+}
+
+async function initSupabase() {
+  const { url, key } = getConfig();
+  if (!url || !key) return false;
+  try {
+    sb = createClient(url, key);
+    const { error } = await sb.from('bucket_places').select('id').limit(1);
+    if (error) { console.warn('Supabase 연결 오류:', error.message); sb = null; return false; }
+    document.getElementById('config-box').style.display = 'none';
+    return true;
+  } catch(e) { sb = null; return false; }
+}
+
+async function loadPlaces() {
+  if (sb) {
+    const { data, error } = await sb.from('bucket_places').select('*').order('created_at', { ascending: false });
+    if (!error && data) { places = data; }
+  } else {
+    try { places = JSON.parse(localStorage.getItem('bucket_places') || '[]'); } catch(e) { places = []; }
+  }
+  render();
+  initMap();
+  updateMapPins();
+}
+
+async function saveLocal() {
+  localStorage.setItem('bucket_places', JSON.stringify(places));
+}
+
+function detectLinkType(url) {
+  if (!url) return null;
+  if (url.includes('kakaomap') || url.includes('map.kakao') || url.includes('kko.to') || url.includes('place.kakao')) return 'kakao';
+  if (url.includes('naver.me') || url.includes('map.naver') || url.includes('naver.com/local')) return 'naver';
+  if (url.includes('instagram.com') || url.includes('instagr.am')) return 'instagram';
+  if (url.startsWith('http')) return 'other';
+  return null;
+}
+
+function onLinkInput(val) {
+  const hint = document.getElementById('link-hint');
+  if (!val.trim()) { hint.textContent = '카카오맵 링크를 붙여넣으면 자동입력 시도해요'; hint.className = 'link-hint'; return; }
+  const type = detectLinkType(val.trim());
+  if (type === 'kakao') {
+    hint.textContent = '카카오맵 링크 인식됨 — 장소명을 직접 입력해주세요';
+    hint.className = 'link-hint info';
+    const nameMatch = val.match(/[?&]name=([^&]+)/);
+    const addrMatch = val.match(/[?&]addr=([^&]+)/);
+    if (nameMatch) document.getElementById('inp-name').value = decodeURIComponent(nameMatch[1]);
+    if (addrMatch) document.getElementById('inp-addr').value = decodeURIComponent(addrMatch[1]);
+  } else if (type === 'naver') {
+    hint.textContent = '네이버맵 링크 인식됨'; hint.className = 'link-hint info';
+  } else if (type === 'instagram') {
+    hint.textContent = '📱 인스타 링크 저장됨 — 장소명은 직접 입력해주세요'; hint.className = 'link-hint';
+  } else {
+    hint.textContent = '링크 저장됨'; hint.className = 'link-hint ok';
+  }
+}
+
+async function addPlace() {
+  const name = document.getElementById('inp-name').value.trim();
+  const link = document.getElementById('inp-link').value.trim();
+  const cat = document.getElementById('inp-cat').value;
+  const addr = document.getElementById('inp-addr').value.trim();
+  const memo = document.getElementById('inp-memo').value.trim();
+  if (!name) {
+    const el = document.getElementById('inp-name');
+    el.focus(); el.style.borderColor = '#E24B4A';
+    setTimeout(() => el.style.borderColor = '', 1500); return;
+  }
+  const linkType = detectLinkType(link);
+  const newPlace = { name, cat, addr, memo, link, link_type: linkType, visited: false };
+
+  if (sb) {
+    const { data, error } = await sb.from('bucket_places').insert([newPlace]).select().single();
+    if (!error && data) places.unshift(data);
+    else { showToast('저장 실패: ' + (error?.message || '')); return; }
+  } else {
+    newPlace.id = Date.now();
+    newPlace.created_at = new Date().toISOString();
+    places.unshift(newPlace);
+    saveLocal();
+  }
+
+  ['inp-name','inp-link','inp-addr','inp-memo'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('link-hint').textContent = '카카오맵 링크를 붙여넣으면 자동입력 시도해요';
+  document.getElementById('link-hint').className = 'link-hint';
+  showToast('저장됐어요!');
+  render();
+  updateMapPins();
+}
+
+async function toggleVisited(id) {
+  const p = places.find(x => x.id === id);
+  if (!p) return;
+  p.visited = !p.visited;
+  if (sb) await sb.from('bucket_places').update({ visited: p.visited }).eq('id', id);
+  else saveLocal();
+  render(); updateMapPins();
+}
+
+async function deletePlace(id) {
+  if (!confirm('삭제할까요?')) return;
+  if (sb) await sb.from('bucket_places').delete().eq('id', id);
+  places = places.filter(x => x.id !== id);
+  if (!sb) saveLocal();
+  render(); updateMapPins();
+}
+
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function initMap() {
+  if (map) return;
+  map = L.map('map', { zoomControl: true, attributionControl: false }).setView([37.5665, 126.978], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+}
+
+const catColors = { '🍽️':'#D85A30','☕':'#BA7517','🎡':'#534AB7','🛍️':'#D4537E','🌿':'#3B6D11','🎬':'#185FA5','📍':'#888780' };
+
+function makeIcon(cat, visited) {
+  const color = visited ? '#aaa' : (catColors[cat] || '#888');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38">
+    <ellipse cx="15" cy="36" rx="6" ry="2.2" fill="rgba(0,0,0,0.12)"/>
+    <path d="M15 2C9.477 2 5 6.477 5 12c0 8 10 24 10 24S25 20 25 12C25 6.477 20.523 2 15 2z" fill="${color}" stroke="white" stroke-width="1.8"/>
+    <circle cx="15" cy="12" r="5.5" fill="white" fill-opacity="0.92"/>
+  </svg>`;
+  return L.divIcon({ html: svg, iconSize: [30, 38], iconAnchor: [15, 38], popupAnchor: [0, -40], className: '' });
+}
+
+async function geocodeAddr(addr) {
+  if (!addr) return null;
+  if (geocodeCache[addr]) return geocodeCache[addr];
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr + ' 한국')}&limit=1&accept-language=ko`);
+    const data = await res.json();
+    if (data && data[0]) {
+      const c = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      geocodeCache[addr] = c;
+      return c;
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function updateMapPins() {
+  if (!map) return;
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  const withAddr = places.filter(p => p.addr);
+  document.getElementById('map-empty').style.display = withAddr.length ? 'none' : 'flex';
+  if (!withAddr.length) return;
+
+  const bounds = [];
+  for (const p of places) {
+    if (!p.addr) continue;
+    const coords = p.coords || await geocodeAddr(p.addr);
+    if (coords) {
+      p.coords = coords;
+      const m = L.marker([coords.lat, coords.lng], { icon: makeIcon(p.cat, p.visited) })
+        .addTo(map)
+        .bindPopup(`<div class="popup-name">${p.cat} ${p.name}${p.visited ? ' ✅' : ''}</div><div class="popup-addr">${p.addr || ''}</div>`)
+        .on('click', () => scrollToCard(p.id));
+      markers.push(m);
+      bounds.push([coords.lat, coords.lng]);
+    }
+  }
+  if (bounds.length) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+}
+
+function scrollToCard(id) {
+  const el = document.getElementById('card-' + id);
+  if (!el) return;
+  el.classList.add('focused');
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => el.classList.remove('focused'), 2000);
+}
+
+function highlightPin(id) {
+  const p = places.find(x => x.id === id);
+  if (p && p.coords && map) {
+    map.setView([p.coords.lat, p.coords.lng], 15, { animate: true });
+  }
+}
+
+function getLinkLabel(type) {
+  if (type === 'kakao') return '🗺️ 카카오맵';
+  if (type === 'naver') return '🗺️ 네이버맵';
+  if (type === 'instagram') return '📱 인스타';
+  return '🔗 링크';
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('ko-KR');
+}
+
+function render() {
+  const total = places.length;
+  const visited = places.filter(p => p.visited).length;
+  document.getElementById('hstat-total').textContent = total;
+  document.getElementById('hstat-remain').textContent = total - visited;
+  document.getElementById('hstat-visited').textContent = visited;
+
+  let filtered = places;
+  if (filter === '✅') filtered = places.filter(p => p.visited);
+  else if (filter !== '전체') filtered = places.filter(p => p.cat === filter);
+
+  const list = document.getElementById('place-list');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><span class="big">🗺️</span>아직 장소가 없어요<br><span style="font-size:13px;margin-top:6px;display:block;">위에서 추가해보세요 💕</span></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(p => {
+    const linkHtml = p.link ? `<a class="ptag" href="${p.link}" target="_blank" rel="noopener">${getLinkLabel(p.link_type)}</a>` : '';
+    return `
+    <div class="place-card ${p.visited ? 'visited' : ''}" id="card-${p.id}" onclick="highlightPin(${p.id})">
+      <div class="cat-icon">${p.cat}</div>
+      <div class="pinfo">
+        <div class="pname">${p.name}${p.visited ? ' <span style="font-size:11px;color:#1D9E75;font-weight:400">✅ 다녀옴</span>' : ''}</div>
+        ${p.addr ? `<div class="paddr">📍 ${p.addr}</div>` : ''}
+        ${p.memo ? `<div class="pmemo">"${p.memo}"</div>` : ''}
+        ${linkHtml ? `<div class="plinks">${linkHtml}</div>` : ''}
+        <div class="pmeta">${formatDate(p.created_at)} 추가</div>
+      </div>
+      <div class="pactions">
+        <button class="iBtn ${p.visited ? 'done' : ''}" onclick="event.stopPropagation();toggleVisited(${p.id})" title="${p.visited ? '방문 취소' : '다녀왔어요'}">
+          ${p.visited ? '☑️' : '⬜'}
+        </button>
+        <button class="iBtn" onclick="event.stopPropagation();deletePlace(${p.id})" title="삭제">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+(async () => {
+  await initSupabase();
+  await loadPlaces();
+})();
+</script>
+</body>
+</html>
