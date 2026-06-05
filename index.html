@@ -177,6 +177,34 @@
     .btn-save { font-size: 14px; }
     input, select, textarea { font-size: 16px; }
   }
+
+  /* EDIT MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(30,27,46,0.45); z-index: 200;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--white); border-radius: 20px;
+    border: 1px solid var(--border); padding: 22px;
+    width: 100%; max-width: 440px;
+    box-shadow: 0 8px 40px var(--shadow);
+  }
+  .modal-title { font-size: 14px; font-weight: 700; color: var(--purple-dark); margin-bottom: 14px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .btn-cancel {
+    flex: 1; padding: 10px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--purple-light);
+    color: var(--text-muted); font-size: 14px; cursor: pointer;
+    font-family: 'Gowun Dodum', sans-serif;
+  }
+  .btn-confirm {
+    flex: 2; padding: 10px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+    color: white; font-size: 14px; cursor: pointer;
+    font-family: 'Gowun Dodum', sans-serif;
+  }
 </style>
 </head>
 <body>
@@ -257,6 +285,50 @@
   </div>
 </main>
 
+
+<div class="modal-overlay" id="edit-overlay">
+  <div class="modal">
+    <div class="modal-title">✏️ 장소 수정</div>
+    <input type="hidden" id="edit-id"/>
+    <div class="field-label">장소 이름</div>
+    <input type="text" id="edit-name" placeholder="장소 이름"/>
+    <div class="field-label">카테고리</div>
+    <select id="edit-cat">
+      <option value="🍽️">🍽️ 음식</option>
+      <option value="☕">☕ 카페</option>
+      <option value="🎡">🎡 놀거리</option>
+      <option value="🛍️">🛍️ 쇼핑</option>
+      <option value="🌿">🌿 자연</option>
+      <option value="🎬">🎬 문화</option>
+      <option value="📍">📍 기타</option>
+    </select>
+    <div class="field-label">주소 / 지역</div>
+    <input type="text" id="edit-addr" placeholder="예: 서울 마포구 연남동"/>
+    <div class="field-label">링크</div>
+    <input type="text" id="edit-link" placeholder="https://..."/>
+    <div class="field-label">메모</div>
+    <textarea id="edit-memo" placeholder="메모..." style="height:52px"></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditModal()">취소</button>
+      <button class="btn-confirm" onclick="saveEdit()">저장하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="memo-edit-overlay">
+  <div class="modal">
+    <div class="modal-title">✏️ 메모 수정</div>
+    <input type="hidden" id="memo-edit-id"/>
+    <div class="field-label">제목</div>
+    <input type="text" id="memo-edit-title" placeholder="제목"/>
+    <div class="field-label">내용</div>
+    <textarea id="memo-edit-body" placeholder="메모..." style="height:100px"></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeMemoEditModal()">취소</button>
+      <button class="btn-confirm" onclick="saveMemoEdit()">저장하기</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -524,6 +596,7 @@ function renderPlaces() {
       </div>
       <div class="pactions">
         <button class="iBtn ${p.visited ? 'done' : ''}" onclick="event.stopPropagation();toggleVisited(${p.id})">${p.visited ? '☑️' : '⬜'}</button>
+        <button class="iBtn" onclick="event.stopPropagation();openEditModal(${p.id})">✏️</button>
         <button class="iBtn" onclick="event.stopPropagation();deletePlace(${p.id})">🗑️</button>
       </div>
     </div>`;
@@ -539,13 +612,98 @@ function renderMemos() {
     <div class="memo-card">
       <div class="memo-card-title">
         ${m.title}
-        <button class="memo-del" onclick="deleteMemo(${m.id})">🗑️</button>
+        <button class="memo-del" onclick="openMemoEditModal(${m.id})">✏️</button><button class="memo-del" onclick="deleteMemo(${m.id})">🗑️</button>
       </div>
       <div class="memo-card-body">${m.body || ''}</div>
       <div class="memo-card-meta">${formatDate(m.created_at)}</div>
     </div>
   `).join('');
 }
+
+
+function openEditModal(id) {
+  const p = places.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-name').value = p.name || '';
+  document.getElementById('edit-cat').value = p.cat || '📍';
+  document.getElementById('edit-addr').value = p.addr || '';
+  document.getElementById('edit-link').value = p.link || '';
+  document.getElementById('edit-memo').value = p.memo || '';
+  document.getElementById('edit-overlay').classList.add('show');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-overlay').classList.remove('show');
+}
+
+async function saveEdit() {
+  const id = parseInt(document.getElementById('edit-id').value);
+  const name = document.getElementById('edit-name').value.trim();
+  const cat = document.getElementById('edit-cat').value;
+  const addr = document.getElementById('edit-addr').value.trim();
+  const link = document.getElementById('edit-link').value.trim();
+  const memo = document.getElementById('edit-memo').value.trim();
+  if (!name) { document.getElementById('edit-name').focus(); return; }
+
+  const updates = { name, cat, addr, link, link_type: detectLinkType(link), memo };
+  const p = places.find(x => x.id === id);
+  if (!p) return;
+
+  if (sb) {
+    const { error } = await sb.from('bucket_places').update(updates).eq('id', id);
+    if (error) { showToast('수정 실패: ' + error.message); return; }
+  }
+  Object.assign(p, updates);
+  if (!sb) saveLocal();
+  // 주소 바뀌었으면 geocode 캐시 삭제
+  if (p.coords && p.addr !== addr) { delete p.coords; delete geocodeCache[addr]; }
+  closeEditModal();
+  showToast('수정됐어요!');
+  renderPlaces();
+  updateMapPins();
+}
+
+// 모달 바깥 클릭시 닫기
+document.getElementById('edit-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
+
+
+function openMemoEditModal(id) {
+  const m = memos.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('memo-edit-id').value = id;
+  document.getElementById('memo-edit-title').value = m.title || '';
+  document.getElementById('memo-edit-body').value = m.body || '';
+  document.getElementById('memo-edit-overlay').classList.add('show');
+}
+
+function closeMemoEditModal() {
+  document.getElementById('memo-edit-overlay').classList.remove('show');
+}
+
+async function saveMemoEdit() {
+  const id = parseInt(document.getElementById('memo-edit-id').value);
+  const title = document.getElementById('memo-edit-title').value.trim();
+  const body = document.getElementById('memo-edit-body').value.trim();
+  const m = memos.find(x => x.id === id);
+  if (!m) return;
+  const updates = { title: title || '제목 없음', body };
+  if (sb) {
+    const { error } = await sb.from('bucket_memos').update(updates).eq('id', id);
+    if (error) { showToast('수정 실패: ' + error.message); return; }
+  }
+  Object.assign(m, updates);
+  if (!sb) saveLocal();
+  closeMemoEditModal();
+  showToast('수정됐어요!');
+  renderMemos();
+}
+
+document.getElementById('memo-edit-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeMemoEditModal();
+});
 
 function showToast(msg) {
   const t = document.getElementById('toast');
