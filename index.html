@@ -209,15 +209,100 @@
     color: white; font-size: 14px; cursor: pointer;
     font-family: 'Gowun Dodum', sans-serif;
   }
+
+  /* CALENDAR */
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-nav { display: flex; align-items: center; gap: 12px; }
+  .cal-nav-btn { background: none; border: 1px solid var(--border); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 15px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; }
+  .cal-nav-btn:hover { background: var(--purple-light); }
+  .cal-month { font-size: 16px; font-weight: 700; color: var(--purple-dark); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 14px; }
+  .cal-dow { text-align: center; font-size: 11px; color: var(--text-muted); padding: 6px 0; }
+  .cal-dow:first-child { color: #e24b4a; }
+  .cal-dow:last-child { color: #378ADD; }
+  .cal-day {
+    aspect-ratio: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start; padding-top: 6px; border-radius: 10px;
+    cursor: pointer; font-size: 13px; color: var(--text); position: relative;
+    transition: background 0.15s;
+  }
+  .cal-day:hover { background: var(--purple-light); }
+  .cal-day.other-month { color: var(--text-muted); opacity: 0.4; }
+  .cal-day.today { background: var(--purple-light); font-weight: 700; color: var(--purple-dark); }
+  .cal-day.today .cal-day-num::after { content: ''; display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--purple-dark); margin: 2px auto 0; }
+  .cal-day.has-event .event-dot { display: block; }
+  .event-dot { display: none; width: 5px; height: 5px; border-radius: 50%; background: var(--purple-dark); margin-top: 2px; }
+  .cal-day-num { font-size: 13px; line-height: 1; }
+  .cal-day:first-child .cal-day-num, .cal-day:nth-child(7n+1) .cal-day-num { color: #e24b4a; }
+  .cal-day:nth-child(7n) .cal-day-num { color: #378ADD; }
+
+  .event-list { display: flex; flex-direction: column; gap: 8px; }
+  .event-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; padding: 13px 15px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .event-date-badge {
+    background: var(--purple-light); border-radius: 10px;
+    padding: 8px 10px; text-align: center; flex-shrink: 0; min-width: 46px;
+  }
+  .event-date-month { font-size: 10px; color: var(--text-muted); }
+  .event-date-day { font-size: 20px; font-weight: 700; color: var(--purple-dark); line-height: 1; }
+  .event-info { flex: 1; min-width: 0; }
+  .event-title { font-size: 14px; font-weight: 700; color: var(--text); }
+  .event-time { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .event-memo { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-style: italic; }
+  .event-actions { display: flex; flex-direction: column; gap: 5px; align-items: center; flex-shrink: 0; }
+
+  /* 날짜 선택 하이라이트 */
+  .cal-day.selected { background: var(--purple-dark) !important; }
+  .cal-day.selected .cal-day-num { color: white !important; }
+
+  /* USER SETUP */
+  .user-setup-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(30,27,46,0.6); z-index: 9999;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .user-setup-overlay.show { display: flex; }
+  .user-setup-box {
+    background: var(--white); border-radius: 20px;
+    border: 1px solid var(--border); padding: 28px 24px;
+    width: 100%; max-width: 340px;
+    box-shadow: 0 8px 40px var(--shadow);
+    text-align: center;
+  }
+  .user-setup-box h2 { font-size: 18px; font-weight: 700; color: var(--purple-dark); margin-bottom: 6px; }
+  .user-setup-box p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+  .color-picker-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 12px 0 20px; }
+  .color-swatch {
+    width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+    border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s;
+  }
+  .color-swatch:hover { transform: scale(1.12); }
+  .color-swatch.selected { border-color: var(--text); transform: scale(1.12); }
+  .user-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 999px; font-size: 12px;
+    font-weight: 700; color: white; margin-left: auto;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .author-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    color: white; font-weight: 700; margin-top: 4px;
+  }
 </style>
 </head>
 <body>
 
 <header>
   <h1>메모장</h1>
+  <div id="user-badge-wrap" style="margin-right:8px"></div>
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('places', this)">📍 갈 곳</button>
     <button class="tab-btn" onclick="switchTab('memo', this)">📝 메모</button>
+    <button class="tab-btn" onclick="switchTab('cal', this)">📅 일정</button>
   </div>
 </header>
 
@@ -287,6 +372,42 @@
     </div>
     <div class="memo-list" id="memo-list"></div>
   </div>
+
+  <!-- 캘린더 탭 -->
+  <div class="panel" id="panel-cal">
+    <div class="add-box">
+      <div class="add-box-title">📅 일정 추가</div>
+      <div class="field-label">제목 *</div>
+      <input type="text" id="ev-title" placeholder="일정 제목"/>
+      <div class="row2">
+        <div>
+          <div class="field-label">날짜 *</div>
+          <input type="date" id="ev-date"/>
+        </div>
+        <div>
+          <div class="field-label">시간 (선택)</div>
+          <input type="time" id="ev-time"/>
+        </div>
+      </div>
+      <div class="field-label">메모</div>
+      <textarea id="ev-memo" placeholder="메모..." style="height:52px"></textarea>
+      <button class="btn-save" onclick="addEvent()">저장하기</button>
+    </div>
+
+    <div class="add-box" style="padding:16px;">
+      <div class="cal-header">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+          <div class="cal-month" id="cal-month-label"></div>
+          <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+
+    <div id="event-list-title" style="font-size:13px;font-weight:700;color:var(--purple-dark);margin-bottom:10px;display:none"></div>
+    <div class="event-list" id="event-list"></div>
+  </div>
 </main>
 
 
@@ -333,6 +454,42 @@
     </div>
   </div>
 </div>
+
+<div class="modal-overlay" id="ev-edit-overlay">
+  <div class="modal">
+    <div class="modal-title">✏️ 일정 수정</div>
+    <input type="hidden" id="ev-edit-id"/>
+    <div class="field-label">제목</div>
+    <input type="text" id="ev-edit-title" placeholder="일정 제목"/>
+    <div class="row2">
+      <div>
+        <div class="field-label">날짜</div>
+        <input type="date" id="ev-edit-date"/>
+      </div>
+      <div>
+        <div class="field-label">시간</div>
+        <input type="time" id="ev-edit-time"/>
+      </div>
+    </div>
+    <div class="field-label">메모</div>
+    <textarea id="ev-edit-memo" placeholder="메모..." style="height:52px"></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEvEditModal()">취소</button>
+      <button class="btn-confirm" onclick="saveEvEdit()">저장하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="user-setup-overlay" id="user-setup-overlay">
+  <div class="user-setup-box">
+    <h2>처음 오셨군요 👋</h2>
+    <p>이름과 색깔을 설정해요<br>여자친구랑 다르게 설정하면 돼요!</p>
+    <input type="text" id="setup-name" placeholder="이름 입력" style="text-align:center;margin-bottom:4px"/>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">색깔 선택</div>
+    <div class="color-picker-row" id="color-picker-row"></div>
+    <button class="btn-save" onclick="saveUserSetup()">시작하기</button>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -347,6 +504,10 @@ const SUPABASE_KEY = "sb_publishable_FSiXXUEqRvngfwfU5_XSyw_U7NsV34p";
 let sb = null;
 let places = [];
 let memos = [];
+let events = [];
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let selectedDate = null;
 let filter = '전체';
 let map = null;
 let markers = [];
@@ -365,18 +526,22 @@ async function initSupabase() {
 
 async function loadAll() {
   if (sb) {
-    const [r1, r2] = await Promise.all([
+    const [r1, r2, r3] = await Promise.all([
       sb.from('bucket_places').select('*').order('created_at', { ascending: false }),
-      sb.from('bucket_memos').select('*').order('created_at', { ascending: false })
+      sb.from('bucket_memos').select('*').order('created_at', { ascending: false }),
+      sb.from('bucket_events').select('*').order('date', { ascending: true })
     ]);
     if (!r1.error) places = r1.data || [];
     if (!r2.error) memos = r2.data || [];
+    if (!r3.error) events = r3.data || [];
   } else {
     try { places = JSON.parse(localStorage.getItem('bucket_places') || '[]'); } catch(e) { places = []; }
     try { memos = JSON.parse(localStorage.getItem('bucket_memos') || '[]'); } catch(e) { memos = []; }
+    try { events = JSON.parse(localStorage.getItem('bucket_events') || '[]'); } catch(e) { events = []; }
   }
   renderPlaces();
   renderMemos();
+  renderCal();
   initMap();
   updateMapPins();
 }
@@ -384,6 +549,7 @@ async function loadAll() {
 function saveLocal() {
   localStorage.setItem('bucket_places', JSON.stringify(places));
   localStorage.setItem('bucket_memos', JSON.stringify(memos));
+  localStorage.setItem('bucket_events', JSON.stringify(events));
 }
 
 function switchTab(tab, btn) {
@@ -393,6 +559,60 @@ function switchTab(tab, btn) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
   if (tab === 'places' && map) setTimeout(() => map.invalidateSize(), 100);
+  if (tab === 'cal') renderCal();
+}
+
+
+// ── 사용자 설정 ──
+const COLORS = ['#7c3aed','#e05c9a','#2563eb','#059669','#d97706','#dc2626','#0891b2','#7c3aed'];
+const COLOR_LABELS = ['보라','핑크','파랑','초록','주황','빨강','하늘','인디고'];
+const SWATCHES = ['#7c3aed','#e05c9a','#2563eb','#059669','#d97706','#dc2626','#0891b2','#6366f1'];
+
+let currentUser = null;
+let selectedColor = SWATCHES[0];
+
+function initUser() {
+  const saved = localStorage.getItem('memo_user');
+  if (saved) {
+    currentUser = JSON.parse(saved);
+    renderUserBadge();
+    return true;
+  }
+  // 컬러 스와치 렌더
+  document.getElementById('color-picker-row').innerHTML = SWATCHES.map((c,i) =>
+    `<div class="color-swatch${i===0?' selected':''}" style="background:${c}" onclick="selectColor('${c}',this)" title="${COLOR_LABELS[i]}"></div>`
+  ).join('');
+  document.getElementById('user-setup-overlay').classList.add('show');
+  return false;
+}
+
+function selectColor(color, el) {
+  selectedColor = color;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function saveUserSetup() {
+  const name = document.getElementById('setup-name').value.trim();
+  if (!name) { document.getElementById('setup-name').focus(); return; }
+  currentUser = { name, color: selectedColor };
+  localStorage.setItem('memo_user', JSON.stringify(currentUser));
+  document.getElementById('user-setup-overlay').classList.remove('show');
+  renderUserBadge();
+}
+
+function renderUserBadge() {
+  if (!currentUser) return;
+  document.getElementById('user-badge-wrap').innerHTML =
+    `<div class="user-badge" style="background:${currentUser.color}" onclick="changeUser()" title="클릭해서 변경">
+      ${currentUser.name}
+    </div>`;
+}
+
+function changeUser() {
+  if (!confirm('이름/색깔을 바꿀까요?')) return;
+  localStorage.removeItem('memo_user');
+  location.reload();
 }
 
 // ── 장소 ──
@@ -435,7 +655,9 @@ async function addPlace() {
     el.focus(); el.style.borderColor = '#E24B4A';
     setTimeout(() => el.style.borderColor = '', 1500); return;
   }
-  const newPlace = { name, cat, addr, memo, link, link_type: detectLinkType(link), visited: false };
+  const author = currentUser ? currentUser.name : '나';
+  const authorColor = currentUser ? currentUser.color : '#7c3aed';
+  const newPlace = { name, cat, addr, memo, link, link_type: detectLinkType(link), visited: false, author, author_color: authorColor };
   if (sb) {
     const { data, error } = await sb.from('bucket_places').insert([newPlace]).select().single();
     if (!error && data) places.unshift(data);
@@ -477,7 +699,9 @@ async function addMemo() {
   const title = document.getElementById('memo-title').value.trim();
   const body = document.getElementById('memo-body').value.trim();
   if (!title && !body) { showToast('내용을 입력해주세요'); return; }
-  const newMemo = { title: title || '제목 없음', body };
+  const author = currentUser ? currentUser.name : '나';
+  const authorColor = currentUser ? currentUser.color : '#7c3aed';
+  const newMemo = { title: title || '제목 없음', body, author, author_color: authorColor };
   if (sb) {
     const { data, error } = await sb.from('bucket_memos').insert([newMemo]).select().single();
     if (!error && data) memos.unshift(data);
@@ -593,6 +817,7 @@ function renderPlaces() {
       <div class="cat-icon">${p.cat}</div>
       <div class="pinfo">
         <div class="pname">${p.name}${p.visited ? ' <span style="font-size:11px;color:#1D9E75;font-weight:400">✅ 다녀옴</span>' : ''}</div>
+        ${p.author ? `<span class="author-tag" style="background:${p.author_color || '#7c3aed'}">${p.author}</span>` : ''}
         ${p.addr ? `<div class="paddr">📍 ${p.addr}</div>` : ''}
         ${p.memo ? `<div class="pmemo">"${p.memo}"</div>` : ''}
         ${linkHtml ? `<div class="plinks">${linkHtml}</div>` : ''}
@@ -615,8 +840,8 @@ function renderMemos() {
   list.innerHTML = memos.map(m => `
     <div class="memo-card">
       <div class="memo-card-title">
-        ${m.title}
-        <button class="memo-del" onclick="openMemoEditModal(${m.id})">✏️</button><button class="memo-del" onclick="deleteMemo(${m.id})">🗑️</button>
+        <span>${m.title}${m.author ? ` <span class="author-tag" style="background:${m.author_color || '#7c3aed'}">${m.author}</span>` : ''}</span>
+        <span><button class="memo-del" onclick="openMemoEditModal(${m.id})">✏️</button><button class="memo-del" onclick="deleteMemo(${m.id})">🗑️</button></span>
       </div>
       <div class="memo-card-body">${m.body || ''}</div>
       <div class="memo-card-meta">${formatDate(m.created_at)}</div>
@@ -711,6 +936,173 @@ document.getElementById('memo-edit-overlay').addEventListener('click', function(
   if (e.target === this) closeMemoEditModal();
 });
 
+
+// ── 일정 ──
+async function addEvent() {
+  const title = document.getElementById('ev-title').value.trim();
+  const date = document.getElementById('ev-date').value;
+  const time = document.getElementById('ev-time').value;
+  const memo = document.getElementById('ev-memo').value.trim();
+  if (!title || !date) { showToast('제목과 날짜를 입력해주세요'); return; }
+  const author = currentUser ? currentUser.name : '나';
+  const authorColor = currentUser ? currentUser.color : '#7c3aed';
+  const newEv = { title, date, time, memo, author, author_color: authorColor };
+  if (sb) {
+    const { data, error } = await sb.from('bucket_events').insert([newEv]).select().single();
+    if (!error && data) events.push(data);
+    else { showToast('저장 실패: ' + (error?.message || '')); return; }
+  } else {
+    newEv.id = Date.now(); newEv.created_at = new Date().toISOString();
+    events.push(newEv); saveLocal();
+  }
+  events.sort((a,b) => a.date.localeCompare(b.date));
+  ['ev-title','ev-date','ev-time','ev-memo'].forEach(id => document.getElementById(id).value = '');
+  showToast('일정 저장됐어요!');
+  renderCal();
+}
+
+async function deleteEvent(id) {
+  if (!confirm('삭제할까요?')) return;
+  if (sb) await sb.from('bucket_events').delete().eq('id', id);
+  events = events.filter(x => x.id !== id);
+  if (!sb) saveLocal();
+  renderCal();
+}
+
+function openEvEditModal(id) {
+  const e = events.find(x => x.id === id); if (!e) return;
+  document.getElementById('ev-edit-id').value = id;
+  document.getElementById('ev-edit-title').value = e.title || '';
+  document.getElementById('ev-edit-date').value = e.date || '';
+  document.getElementById('ev-edit-time').value = e.time || '';
+  document.getElementById('ev-edit-memo').value = e.memo || '';
+  document.getElementById('ev-edit-overlay').classList.add('show');
+}
+function closeEvEditModal() {
+  document.getElementById('ev-edit-overlay').classList.remove('show');
+}
+async function saveEvEdit() {
+  const id = parseInt(document.getElementById('ev-edit-id').value);
+  const title = document.getElementById('ev-edit-title').value.trim();
+  const date = document.getElementById('ev-edit-date').value;
+  const time = document.getElementById('ev-edit-time').value;
+  const memo = document.getElementById('ev-edit-memo').value.trim();
+  if (!title || !date) { showToast('제목과 날짜를 입력해주세요'); return; }
+  const ev = events.find(x => x.id === id); if (!ev) return;
+  const updates = { title, date, time, memo };
+  if (sb) {
+    const { error } = await sb.from('bucket_events').update(updates).eq('id', id);
+    if (error) { showToast('수정 실패: ' + error.message); return; }
+  }
+  Object.assign(ev, updates);
+  events.sort((a,b) => a.date.localeCompare(b.date));
+  if (!sb) saveLocal();
+  closeEvEditModal();
+  showToast('수정됐어요!');
+  renderCal();
+}
+document.getElementById('ev-edit-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeEvEditModal();
+});
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCal();
+}
+
+function renderCal() {
+  const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  document.getElementById('cal-month-label').textContent = `${calYear}년 ${months[calMonth]}`;
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const prevDays = new Date(calYear, calMonth, 0).getDate();
+  const today = new Date();
+
+  // 이벤트 날짜 Set
+  const eventDates = new Set(events.map(e => e.date));
+
+  const dows = ['일','월','화','수','목','금','토'];
+  let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  // 이전달 날짜
+  for (let i = firstDay - 1; i >= 0; i--) {
+    html += `<div class="cal-day other-month"><span class="cal-day-num">${prevDays - i}</span></div>`;
+  }
+
+  // 이번달
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d;
+    const isSelected = selectedDate === dateStr;
+    const hasEvent = eventDates.has(dateStr);
+    html += `<div class="cal-day${isToday?' today':''}${isSelected?' selected':''}${hasEvent?' has-event':''}" onclick="selectDate('${dateStr}')">
+      <span class="cal-day-num">${d}</span>
+      <span class="event-dot"></span>
+    </div>`;
+  }
+
+  // 다음달
+  const remaining = 42 - firstDay - daysInMonth;
+  for (let d = 1; d <= remaining; d++) {
+    html += `<div class="cal-day other-month"><span class="cal-day-num">${d}</span></div>`;
+  }
+
+  document.getElementById('cal-grid').innerHTML = html;
+  renderEventList();
+}
+
+function selectDate(dateStr) {
+  selectedDate = selectedDate === dateStr ? null : dateStr;
+  renderCal();
+}
+
+function renderEventList() {
+  const titleEl = document.getElementById('event-list-title');
+  const listEl = document.getElementById('event-list');
+
+  let filtered = selectedDate
+    ? events.filter(e => e.date === selectedDate)
+    : events.filter(e => e.date >= new Date().toISOString().slice(0,10));
+
+  if (selectedDate) {
+    titleEl.style.display = 'block';
+    titleEl.textContent = `${selectedDate.replace(/-/g,'.')} 일정`;
+  } else {
+    titleEl.style.display = filtered.length ? 'block' : 'none';
+    titleEl.textContent = '다가오는 일정';
+  }
+
+  if (!filtered.length) {
+    listEl.innerHTML = `<div class="empty-state"><span class="big">📅</span>${selectedDate ? '이날 일정이 없어요' : '다가오는 일정이 없어요'}</div>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(ev => {
+    const d = new Date(ev.date + 'T00:00:00');
+    const month = d.getMonth()+1;
+    const day = d.getDate();
+    return `
+    <div class="event-card">
+      <div class="event-date-badge">
+        <div class="event-date-month">${month}월</div>
+        <div class="event-date-day">${day}</div>
+      </div>
+      <div class="event-info">
+        <div class="event-title">${ev.title}${ev.author ? ` <span class="author-tag" style="background:${ev.author_color || '#7c3aed'}">${ev.author}</span>` : ''}</div>
+        ${ev.time ? `<div class="event-time">🕐 ${ev.time}</div>` : ''}
+        ${ev.memo ? `<div class="event-memo">"${ev.memo}"</div>` : ''}
+      </div>
+      <div class="event-actions">
+        <button class="iBtn" onclick="openEvEditModal(${ev.id})">✏️</button>
+        <button class="iBtn" onclick="deleteEvent(${ev.id})">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -719,6 +1111,7 @@ function showToast(msg) {
 
 (async () => {
   await initSupabase();
+  initUser();
   await loadAll();
 })();
 </script>
