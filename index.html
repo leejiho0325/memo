@@ -292,6 +292,16 @@
     font-size: 11px; padding: 2px 8px; border-radius: 999px;
     color: white; font-weight: 700; margin-top: 4px;
   }
+
+  /* CAL TITLE PREVIEW */
+  .cal-day { position: relative; min-height: 52px; align-items: flex-start; padding: 5px 3px 4px; }
+  .cal-day-num { font-size: 12px; line-height: 1; margin-bottom: 2px; }
+  .cal-ev-preview {
+    width: 100%; font-size: 9px; padding: 1px 3px; border-radius: 3px;
+    color: white; font-weight: 700; margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1.4; pointer-events: none;
+  }
 </style>
 </head>
 <body>
@@ -483,7 +493,7 @@
 <div class="user-setup-overlay" id="user-setup-overlay">
   <div class="user-setup-box">
     <h2>처음 오셨군요 👋</h2>
-    <p>이름과 색깔을 설정해요!</p>
+    <p>이름과 색깔을 설정해요<br>여자친구랑 다르게 설정하면 돼요!</p>
     <input type="text" id="setup-name" placeholder="이름 입력" style="text-align:center;margin-bottom:4px"/>
     <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">색깔 선택</div>
     <div class="color-picker-row" id="color-picker-row"></div>
@@ -1021,30 +1031,36 @@ function renderCal() {
   const prevDays = new Date(calYear, calMonth, 0).getDate();
   const today = new Date();
 
-  // 이벤트 날짜 Set
-  const eventDates = new Set(events.map(e => e.date));
+  // 날짜별 이벤트 맵
+  const dateEventMap = {};
+  events.forEach(ev => {
+    if (!dateEventMap[ev.date]) dateEventMap[ev.date] = [];
+    dateEventMap[ev.date].push(ev);
+  });
 
   const dows = ['일','월','화','수','목','금','토'];
   let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
 
-  // 이전달 날짜
   for (let i = firstDay - 1; i >= 0; i--) {
     html += `<div class="cal-day other-month"><span class="cal-day-num">${prevDays - i}</span></div>`;
   }
 
-  // 이번달
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d;
     const isSelected = selectedDate === dateStr;
-    const hasEvent = eventDates.has(dateStr);
-    html += `<div class="cal-day${isToday?' today':''}${isSelected?' selected':''}${hasEvent?' has-event':''}" onclick="selectDate('${dateStr}')">
+    const dayEvs = dateEventMap[dateStr] || [];
+
+    const previews = dayEvs.slice(0,2).map(ev =>
+      `<div class="cal-ev-preview" style="background:${ev.author_color||'#7c3aed'}">${ev.title}</div>`
+    ).join('');
+
+    html += `<div class="cal-day${isToday?' today':''}${isSelected?' selected':''}" onclick="selectDate('${dateStr}')">
       <span class="cal-day-num">${d}</span>
-      <span class="event-dot"></span>
+      ${previews}
     </div>`;
   }
 
-  // 다음달
   const remaining = 42 - firstDay - daysInMonth;
   for (let d = 1; d <= remaining; d++) {
     html += `<div class="cal-day other-month"><span class="cal-day-num">${d}</span></div>`;
@@ -1063,9 +1079,10 @@ function renderEventList() {
   const titleEl = document.getElementById('event-list-title');
   const listEl = document.getElementById('event-list');
 
+  const todayStr = new Date().toISOString().slice(0,10);
   let filtered = selectedDate
     ? events.filter(e => e.date === selectedDate)
-    : events.filter(e => e.date >= new Date().toISOString().slice(0,10));
+    : events.filter(e => e.date >= todayStr);
 
   if (selectedDate) {
     titleEl.style.display = 'block';
@@ -1086,7 +1103,7 @@ function renderEventList() {
     const day = d.getDate();
     return `
     <div class="event-card">
-      <div class="event-date-badge">
+      <div class="event-date-badge" style="border-left: 3px solid ${ev.author_color||'#7c3aed'}">
         <div class="event-date-month">${month}월</div>
         <div class="event-date-day">${day}</div>
       </div>
