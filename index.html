@@ -986,6 +986,10 @@ document.getElementById('memo-edit-overlay').addEventListener('click', function(
 
 
 // ── 일정 ──
+function toLocalDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function dateRange(start, end) {
   const arr = [];
   if (!start) return arr;
@@ -995,7 +999,7 @@ function dateRange(start, end) {
   if (endD < d) return [start];
   let guard = 0;
   while (d <= endD && guard < 400) {
-    arr.push(d.toISOString().slice(0,10));
+    arr.push(toLocalDateStr(d));
     d.setDate(d.getDate() + 1);
     guard++;
   }
@@ -1177,10 +1181,10 @@ function renderEventList() {
   const titleEl = document.getElementById('event-list-title');
   const listEl = document.getElementById('event-list');
 
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = toLocalDateStr(new Date());
   const in3days = new Date();
   in3days.setDate(in3days.getDate() + 3);
-  const in3Str = in3days.toISOString().slice(0,10);
+  const in3Str = toLocalDateStr(in3days);
 
   let filtered;
   if (selectedDate) {
