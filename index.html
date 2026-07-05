@@ -210,6 +210,19 @@
     font-family: 'Gowun Dodum', sans-serif;
   }
 
+  /* EVENT TYPE TOGGLE */
+  .ev-type-toggle { display: flex; gap: 8px; margin-bottom: 4px; }
+  .ev-type-btn {
+    flex: 1; padding: 9px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--purple-light);
+    color: var(--text-muted); font-family: 'Gowun Dodum', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all 0.15s;
+  }
+  .ev-type-btn.active {
+    background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+    color: white; border-color: transparent; font-weight: 700;
+  }
+
   /* CALENDAR */
   .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .cal-nav { display: flex; align-items: center; gap: 12px; }
@@ -400,16 +413,23 @@
       <div class="add-box-title">📅 일정 추가</div>
       <div class="field-label">제목 *</div>
       <input type="text" id="ev-title" placeholder="일정 제목"/>
+      <div class="field-label">일정 유형</div>
+      <div class="ev-type-toggle" id="ev-type-toggle">
+        <button type="button" class="ev-type-btn active" id="ev-type-single" onclick="setEvType('single', this)">📌 하루</button>
+        <button type="button" class="ev-type-btn" id="ev-type-range" onclick="setEvType('range', this)">📆 기간</button>
+      </div>
       <div class="row2">
         <div>
-          <div class="field-label">날짜 *</div>
+          <div class="field-label" id="ev-date-label">날짜 *</div>
           <input type="date" id="ev-date"/>
         </div>
-        <div>
-          <div class="field-label">시간 (선택)</div>
-          <input type="time" id="ev-time"/>
+        <div id="ev-end-date-wrap" style="display:none">
+          <div class="field-label">종료일 *</div>
+          <input type="date" id="ev-end-date"/>
         </div>
       </div>
+      <div class="field-label">시간 (선택)</div>
+      <input type="time" id="ev-time"/>
       <div class="field-label">메모</div>
       <textarea id="ev-memo" placeholder="메모..." style="height:52px"></textarea>
       <button class="btn-save" onclick="addEvent()">저장하기</button>
@@ -482,16 +502,23 @@
     <input type="hidden" id="ev-edit-id"/>
     <div class="field-label">제목</div>
     <input type="text" id="ev-edit-title" placeholder="일정 제목"/>
+    <div class="field-label">일정 유형</div>
+    <div class="ev-type-toggle" id="ev-edit-type-toggle">
+      <button type="button" class="ev-type-btn active" id="ev-edit-type-single" onclick="setEvEditType('single', this)">📌 하루</button>
+      <button type="button" class="ev-type-btn" id="ev-edit-type-range" onclick="setEvEditType('range', this)">📆 기간</button>
+    </div>
     <div class="row2">
       <div>
-        <div class="field-label">날짜</div>
+        <div class="field-label" id="ev-edit-date-label">날짜 *</div>
         <input type="date" id="ev-edit-date"/>
       </div>
-      <div>
-        <div class="field-label">시간</div>
-        <input type="time" id="ev-edit-time"/>
+      <div id="ev-edit-end-date-wrap" style="display:none">
+        <div class="field-label">종료일 *</div>
+        <input type="date" id="ev-edit-end-date"/>
       </div>
     </div>
+    <div class="field-label">시간</div>
+    <input type="time" id="ev-edit-time"/>
     <div class="field-label">메모</div>
     <textarea id="ev-edit-memo" placeholder="메모..." style="height:52px"></textarea>
     <div class="modal-actions">
@@ -959,15 +986,45 @@ document.getElementById('memo-edit-overlay').addEventListener('click', function(
 
 
 // ── 일정 ──
+function dateRange(start, end) {
+  const arr = [];
+  if (!start) return arr;
+  const endStr = end || start;
+  let d = new Date(start + 'T00:00:00');
+  const endD = new Date(endStr + 'T00:00:00');
+  if (endD < d) return [start];
+  let guard = 0;
+  while (d <= endD && guard < 400) {
+    arr.push(d.toISOString().slice(0,10));
+    d.setDate(d.getDate() + 1);
+    guard++;
+  }
+  return arr;
+}
+
+let evType = 'single';
+function setEvType(type, btn) {
+  evType = type;
+  document.querySelectorAll('#ev-type-toggle .ev-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ev-end-date-wrap').style.display = type === 'range' ? 'block' : 'none';
+  document.getElementById('ev-date-label').textContent = type === 'range' ? '시작일 *' : '날짜 *';
+  if (type === 'single') document.getElementById('ev-end-date').value = '';
+}
+
 async function addEvent() {
   const title = document.getElementById('ev-title').value.trim();
   const date = document.getElementById('ev-date').value;
+  let endDate = evType === 'range' ? document.getElementById('ev-end-date').value : '';
   const time = document.getElementById('ev-time').value;
   const memo = document.getElementById('ev-memo').value.trim();
   if (!title || !date) { showToast('제목과 날짜를 입력해주세요'); return; }
+  if (evType === 'range' && !endDate) { showToast('종료일을 입력해주세요'); return; }
+  if (endDate && endDate < date) { showToast('종료일이 시작일보다 빠를 수 없어요'); return; }
+  if (!endDate || endDate === date) endDate = null;
   const author = currentUser ? currentUser.name : '나';
   const authorColor = currentUser ? currentUser.color : '#7c3aed';
-  const newEv = { title, date, time, memo, author, author_color: authorColor };
+  const newEv = { title, date, end_date: endDate, time, memo, author, author_color: authorColor };
   if (sb) {
     const { data, error } = await sb.from('bucket_events').insert([newEv]).select().single();
     if (!error && data) events.push(data);
@@ -977,7 +1034,8 @@ async function addEvent() {
     events.push(newEv); saveLocal();
   }
   events.sort((a,b) => a.date.localeCompare(b.date));
-  ['ev-title','ev-date','ev-time','ev-memo'].forEach(id => document.getElementById(id).value = '');
+  ['ev-title','ev-date','ev-end-date','ev-time','ev-memo'].forEach(id => document.getElementById(id).value = '');
+  setEvType('single', document.getElementById('ev-type-single'));
   showToast('일정 저장됐어요!');
   renderCal();
 }
@@ -990,13 +1048,26 @@ async function deleteEvent(id) {
   renderCal();
 }
 
+let evEditType = 'single';
+function setEvEditType(type, btn) {
+  evEditType = type;
+  document.querySelectorAll('#ev-edit-type-toggle .ev-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ev-edit-end-date-wrap').style.display = type === 'range' ? 'block' : 'none';
+  document.getElementById('ev-edit-date-label').textContent = type === 'range' ? '시작일 *' : '날짜 *';
+  if (type === 'single') document.getElementById('ev-edit-end-date').value = '';
+}
+
 function openEvEditModal(id) {
   const e = events.find(x => x.id === id); if (!e) return;
   document.getElementById('ev-edit-id').value = id;
   document.getElementById('ev-edit-title').value = e.title || '';
   document.getElementById('ev-edit-date').value = e.date || '';
+  document.getElementById('ev-edit-end-date').value = e.end_date || '';
   document.getElementById('ev-edit-time').value = e.time || '';
   document.getElementById('ev-edit-memo').value = e.memo || '';
+  const isRange = !!(e.end_date && e.end_date !== e.date);
+  setEvEditType(isRange ? 'range' : 'single', document.getElementById(isRange ? 'ev-edit-type-range' : 'ev-edit-type-single'));
   document.getElementById('ev-edit-overlay').classList.add('show');
 }
 function closeEvEditModal() {
@@ -1006,11 +1077,15 @@ async function saveEvEdit() {
   const id = parseInt(document.getElementById('ev-edit-id').value);
   const title = document.getElementById('ev-edit-title').value.trim();
   const date = document.getElementById('ev-edit-date').value;
+  let endDate = evEditType === 'range' ? document.getElementById('ev-edit-end-date').value : '';
   const time = document.getElementById('ev-edit-time').value;
   const memo = document.getElementById('ev-edit-memo').value.trim();
   if (!title || !date) { showToast('제목과 날짜를 입력해주세요'); return; }
+  if (evEditType === 'range' && !endDate) { showToast('종료일을 입력해주세요'); return; }
+  if (endDate && endDate < date) { showToast('종료일이 시작일보다 빠를 수 없어요'); return; }
+  if (!endDate || endDate === date) endDate = null;
   const ev = events.find(x => x.id === id); if (!ev) return;
-  const updates = { title, date, time, memo };
+  const updates = { title, date, end_date: endDate, time, memo };
   if (sb) {
     const { error } = await sb.from('bucket_events').update(updates).eq('id', id);
     if (error) { showToast('수정 실패: ' + error.message); return; }
@@ -1042,11 +1117,14 @@ function renderCal() {
   const prevDays = new Date(calYear, calMonth, 0).getDate();
   const today = new Date();
 
-  // 날짜별 이벤트 맵
+  // 날짜별 이벤트 맵 (기간 일정은 모든 날짜에 표시)
   const dateEventMap = {};
   events.forEach(ev => {
-    if (!dateEventMap[ev.date]) dateEventMap[ev.date] = [];
-    dateEventMap[ev.date].push(ev);
+    const dates = dateRange(ev.date, ev.end_date);
+    dates.forEach(ds => {
+      if (!dateEventMap[ds]) dateEventMap[ds] = [];
+      dateEventMap[ds].push(ev);
+    });
   });
 
   const dows = ['일','월','화','수','목','금','토'];
@@ -1086,6 +1164,15 @@ function selectDate(dateStr) {
   renderCal();
 }
 
+function formatEventBadge(ev) {
+  const s = new Date(ev.date + 'T00:00:00');
+  if (ev.end_date && ev.end_date !== ev.date) {
+    const en = new Date(ev.end_date + 'T00:00:00');
+    return `<div class="event-date-month">${s.getMonth()+1}.${s.getDate()}~${en.getMonth()+1}.${en.getDate()}</div><div class="event-date-day" style="font-size:13px">기간</div>`;
+  }
+  return `<div class="event-date-month">${s.getMonth()+1}월</div><div class="event-date-day">${s.getDate()}</div>`;
+}
+
 function renderEventList() {
   const titleEl = document.getElementById('event-list-title');
   const listEl = document.getElementById('event-list');
@@ -1094,9 +1181,13 @@ function renderEventList() {
   const in3days = new Date();
   in3days.setDate(in3days.getDate() + 3);
   const in3Str = in3days.toISOString().slice(0,10);
-  let filtered = selectedDate
-    ? events.filter(e => e.date === selectedDate)
-    : events.filter(e => e.date >= todayStr && e.date <= in3Str);
+
+  let filtered;
+  if (selectedDate) {
+    filtered = events.filter(e => selectedDate >= e.date && selectedDate <= (e.end_date || e.date));
+  } else {
+    filtered = events.filter(e => (e.end_date || e.date) >= todayStr && e.date <= in3Str);
+  }
 
   if (selectedDate) {
     titleEl.style.display = 'block';
@@ -1112,17 +1203,14 @@ function renderEventList() {
   }
 
   listEl.innerHTML = filtered.map(ev => {
-    const d = new Date(ev.date + 'T00:00:00');
-    const month = d.getMonth()+1;
-    const day = d.getDate();
     return `
     <div class="event-card">
       <div class="event-date-badge" style="border-left: 3px solid ${ev.author_color||'#7c3aed'}">
-        <div class="event-date-month">${month}월</div>
-        <div class="event-date-day">${day}</div>
+        ${formatEventBadge(ev)}
       </div>
       <div class="event-info">
         <div class="event-title">${ev.title}${ev.author ? ` <span class="author-tag" style="background:${ev.author_color || '#7c3aed'}">${ev.author}</span>` : ''}</div>
+        ${ev.end_date && ev.end_date !== ev.date ? `<div class="event-time">📆 ${ev.date} ~ ${ev.end_date}</div>` : ''}
         ${ev.time ? `<div class="event-time">🕐 ${ev.time}</div>` : ''}
         ${ev.memo ? `<div class="event-memo">"${ev.memo}"</div>` : ''}
       </div>
