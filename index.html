@@ -223,6 +223,69 @@
     color: white; border-color: transparent; font-weight: 700;
   }
 
+  /* PHOTO LOG */
+  .photo-upload-box {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border: 2px dashed var(--border); border-radius: 14px;
+    padding: 22px; cursor: pointer; color: var(--text-muted);
+    font-size: 14px; background: var(--purple-light); transition: border-color .15s;
+  }
+  .photo-upload-box:hover { border-color: var(--purple); }
+  .photo-preview-wrap { margin-top: 10px; position: relative; }
+  .photo-preview-wrap img { width: 100%; max-height: 320px; object-fit: cover; border-radius: 14px; display: block; }
+  .photo-preview-clear {
+    position: absolute; top: 8px; right: 8px; background: rgba(30,27,46,0.6);
+    color: white; border: none; border-radius: 50%; width: 26px; height: 26px;
+    cursor: pointer; font-size: 14px; line-height: 1;
+  }
+  .photo-day-group { margin-bottom: 24px; }
+  .photo-day-label { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; }
+  .photo-strip-row { display: flex; flex-wrap: wrap; gap: 16px; }
+  .photo-strip {
+    background: var(--white); border-radius: 6px; padding: 10px 10px 14px;
+    box-shadow: 0 6px 18px var(--shadow), 0 1px 3px rgba(0,0,0,0.08);
+    display: flex; flex-direction: column; gap: 6px;
+    width: 148px; transform: rotate(var(--tilt, 0deg));
+  }
+  .photo-strip-photo {
+    position: relative; border-radius: 3px; overflow: hidden;
+    aspect-ratio: 4/3; background: var(--purple-light); cursor: pointer;
+  }
+  .photo-strip-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-thumb-badge {
+    position: absolute; bottom: 3px; left: 3px; font-size: 8px; font-weight: 700;
+    color: white; padding: 1px 5px; border-radius: 999px;
+  }
+  .photo-thumb-time {
+    position: absolute; top: 3px; right: 3px; font-size: 8px; font-weight: 700;
+    color: white; padding: 1px 5px; border-radius: 999px; background: rgba(30,27,46,0.55);
+  }
+  .photo-strip-footer {
+    text-align: center; font-family: 'Nanum Myeongjo', serif; font-size: 11px;
+    color: var(--purple-dark); padding-top: 2px; letter-spacing: 0.3px;
+  }
+  .photo-strip-empty {
+    aspect-ratio: 4/3; border-radius: 3px; background: repeating-linear-gradient(45deg, var(--purple-light), var(--purple-light) 6px, var(--white) 6px, var(--white) 12px);
+  }
+  .lightbox-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(10,8,20,0.9);
+    z-index: 10000; align-items: center; justify-content: center; padding: 24px;
+    flex-direction: column; gap: 12px;
+  }
+  .lightbox-overlay.show { display: flex; }
+  .lightbox-overlay img { max-width: 100%; max-height: 70vh; border-radius: 12px; object-fit: contain; }
+  .lightbox-caption { color: white; font-size: 14px; text-align: center; max-width: 480px; }
+  .lightbox-meta { color: rgba(255,255,255,0.6); font-size: 12px; }
+  .lightbox-close {
+    position: absolute; top: 20px; right: 20px; background: none; border: none;
+    color: white; font-size: 26px; cursor: pointer; line-height: 1;
+  }
+  .lightbox-del {
+    background: rgba(255,255,255,0.15); color: white; border: none;
+    padding: 8px 18px; border-radius: 999px; font-size: 13px; cursor: pointer;
+    font-family: 'Gowun Dodum', sans-serif;
+  }
+
   /* CALENDAR */
   .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .cal-nav { display: flex; align-items: center; gap: 12px; }
@@ -325,6 +388,8 @@
     .cal-dow { font-size: 10px; padding: 4px 0; }
     .cal-month { font-size: 14px; }
     .add-box { padding: 14px 12px; }
+    .photo-strip { width: 44%; }
+    .photo-strip-row { gap: 10px; }
   }
 </style>
 </head>
@@ -336,6 +401,7 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('places', this)">📍 갈 곳</button>
     <button class="tab-btn" onclick="switchTab('memo', this)">📝 메모</button>
+    <button class="tab-btn" onclick="switchTab('photos', this)">📷 로그</button>
     <button class="tab-btn" onclick="switchTab('cal', this)">📅 일정</button>
   </div>
 </header>
@@ -405,6 +471,25 @@
       <button class="btn-save" onclick="addMemo()">저장하기</button>
     </div>
     <div class="memo-list" id="memo-list"></div>
+  </div>
+
+  <!-- 사진 로그 탭 -->
+  <div class="panel" id="panel-photos">
+    <div class="add-box">
+      <div class="add-box-title">📷 사진 남기기</div>
+      <input type="file" id="photo-file-input" accept="image/*" capture="environment" style="display:none" onchange="onPhotoFileSelected(event)"/>
+      <div class="photo-upload-box" id="photo-upload-box" onclick="document.getElementById('photo-file-input').click()">
+        📷 탭해서 사진 찍기 / 고르기
+      </div>
+      <div class="photo-preview-wrap" id="photo-preview-wrap" style="display:none">
+        <img id="photo-preview-img"/>
+        <button class="photo-preview-clear" onclick="clearPhotoSelection()">✕</button>
+      </div>
+      <div class="field-label">캡션 (선택)</div>
+      <input type="text" id="photo-caption" placeholder="오늘 뭐 했어?"/>
+      <button class="btn-save" id="photo-upload-btn" onclick="uploadPhoto()">올리기</button>
+    </div>
+    <div id="photo-timeline"></div>
   </div>
 
   <!-- 캘린더 탭 -->
@@ -538,6 +623,13 @@
     <button class="btn-save" onclick="saveUserSetup()">시작하기</button>
   </div>
 </div>
+<div class="lightbox-overlay" id="lightbox-overlay">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src=""/>
+  <div class="lightbox-caption" id="lightbox-caption"></div>
+  <div class="lightbox-meta" id="lightbox-meta"></div>
+  <button class="lightbox-del" id="lightbox-del-btn" onclick="deleteCurrentPhoto()">🗑️ 삭제</button>
+</div>
 <div class="toast" id="toast"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -553,6 +645,9 @@ let sb = null;
 let places = [];
 let memos = [];
 let events = [];
+let photos = [];
+let selectedPhotoFile = null;
+let currentLightboxPhoto = null;
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let selectedDate = null;
@@ -574,14 +669,17 @@ async function initSupabase() {
 
 async function loadAll() {
   if (sb) {
-    const [r1, r2, r3] = await Promise.all([
+    const [r1, r2, r3, r4] = await Promise.all([
       sb.from('bucket_places').select('*').order('created_at', { ascending: false }),
       sb.from('bucket_memos').select('*').order('created_at', { ascending: false }),
-      sb.from('bucket_events').select('*').order('date', { ascending: true })
+      sb.from('bucket_events').select('*').order('date', { ascending: true }),
+      sb.from('bucket_photos').select('*').order('created_at', { ascending: false })
     ]);
     if (!r1.error) places = r1.data || [];
     if (!r2.error) memos = r2.data || [];
     if (!r3.error) events = r3.data || [];
+    if (!r4.error) photos = r4.data || [];
+    else console.warn('사진 로딩 실패:', r4.error.message);
   } else {
     try { places = JSON.parse(localStorage.getItem('bucket_places') || '[]'); } catch(e) { places = []; }
     try { memos = JSON.parse(localStorage.getItem('bucket_memos') || '[]'); } catch(e) { memos = []; }
@@ -590,6 +688,7 @@ async function loadAll() {
   renderPlaces();
   renderMemos();
   renderCal();
+  renderPhotos();
   initMap();
   updateMapPins();
 }
@@ -769,6 +868,137 @@ async function deleteMemo(id) {
   memos = memos.filter(x => x.id !== id);
   if (!sb) saveLocal();
   renderMemos();
+}
+
+// ── 사진 로그 ──
+function onPhotoFileSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  selectedPhotoFile = file;
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById('photo-preview-img').src = reader.result;
+    document.getElementById('photo-preview-wrap').style.display = 'block';
+    document.getElementById('photo-upload-box').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPhotoSelection() {
+  selectedPhotoFile = null;
+  document.getElementById('photo-file-input').value = '';
+  document.getElementById('photo-preview-wrap').style.display = 'none';
+  document.getElementById('photo-upload-box').style.display = 'flex';
+}
+
+async function uploadPhoto() {
+  if (!selectedPhotoFile) { showToast('사진을 먼저 선택해줘'); return; }
+  if (!sb) { showToast('사진 기능은 Supabase 연결이 필요해요'); return; }
+  const btn = document.getElementById('photo-upload-btn');
+  btn.disabled = true; btn.textContent = '올리는 중...';
+  try {
+    const author = currentUser ? currentUser.name : '나';
+    const authorColor = currentUser ? currentUser.color : '#7c3aed';
+    const ext = (selectedPhotoFile.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const { error: upErr } = await sb.storage.from('photos').upload(path, selectedPhotoFile, { upsert: false });
+    if (upErr) { showToast('업로드 실패: ' + upErr.message); return; }
+    const { data: pub } = sb.storage.from('photos').getPublicUrl(path);
+    const caption = document.getElementById('photo-caption').value.trim();
+    const newPhoto = { url: pub.publicUrl, path, caption, author, author_color: authorColor };
+    const { data, error } = await sb.from('bucket_photos').insert([newPhoto]).select().single();
+    if (error) { showToast('저장 실패: ' + error.message); return; }
+    photos.unshift(data);
+    clearPhotoSelection();
+    document.getElementById('photo-caption').value = '';
+    showToast('사진 올라갔어요!');
+    renderPhotos();
+  } finally {
+    btn.disabled = false; btn.textContent = '올리기';
+  }
+}
+
+function photoDayLabel(iso) {
+  const d = new Date(iso);
+  const days = ['일','월','화','수','목','금','토'];
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} (${days[d.getDay()]})`;
+}
+
+function renderPhotos() {
+  const wrap = document.getElementById('photo-timeline');
+  if (!sb) {
+    wrap.innerHTML = `<div class="empty-state"><span class="big">📷</span>사진 기능은 Supabase 연결 후 사용할 수 있어요</div>`;
+    return;
+  }
+  if (!photos.length) {
+    wrap.innerHTML = `<div class="empty-state"><span class="big">📷</span>아직 사진이 없어요</div>`;
+    return;
+  }
+  const groups = {};
+  photos.forEach(p => {
+    const key = toLocalDateStr(new Date(p.created_at));
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(p);
+  });
+  const keys = Object.keys(groups).sort((a,b) => b.localeCompare(a));
+  const tilts = [-2, 1.5, -1, 2, -1.5, 1];
+  wrap.innerHTML = keys.map(key => {
+    const items = groups[key].slice().sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    const label = photoDayLabel(items[0].created_at);
+    const chunks = [];
+    for (let i = 0; i < items.length; i += 4) chunks.push(items.slice(i, i + 4));
+    const strips = chunks.map((chunk, ci) => {
+      const shots = chunk.map(p => {
+        const d = new Date(p.created_at);
+        const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        return `
+        <div class="photo-strip-photo" onclick='openLightbox(${JSON.stringify(p.id)})'>
+          <img src="${p.url}" loading="lazy"/>
+          <span class="photo-thumb-time">${timeStr}</span>
+          ${p.author ? `<span class="photo-thumb-badge" style="background:${p.author_color || '#7c3aed'}">${p.author}</span>` : ''}
+        </div>`;
+      }).join('');
+      const emptySlots = Array.from({ length: Math.max(0, 4 - chunk.length) })
+        .map(() => `<div class="photo-strip-empty"></div>`).join('');
+      const tilt = tilts[(ci) % tilts.length];
+      return `<div class="photo-strip" style="--tilt:${tilt}deg">${shots}${emptySlots}<div class="photo-strip-footer">${label}</div></div>`;
+    }).join('');
+    return `<div class="photo-day-group"><div class="photo-day-label">${label}</div><div class="photo-strip-row">${strips}</div></div>`;
+  }).join('');
+}
+
+function openLightbox(id) {
+  const p = photos.find(x => x.id === id);
+  if (!p) return;
+  currentLightboxPhoto = p;
+  document.getElementById('lightbox-img').src = p.url;
+  document.getElementById('lightbox-caption').textContent = p.caption || '';
+  const d = new Date(p.created_at);
+  document.getElementById('lightbox-meta').textContent = `${p.author || '나'} · ${photoDayLabel(p.created_at)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('lightbox-overlay').classList.add('show');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox-overlay').classList.remove('show');
+  currentLightboxPhoto = null;
+}
+
+document.getElementById('lightbox-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeLightbox();
+});
+
+async function deleteCurrentPhoto() {
+  if (!currentLightboxPhoto) return;
+  if (!confirm('삭제할까요?')) return;
+  const p = currentLightboxPhoto;
+  if (sb) {
+    await sb.storage.from('photos').remove([p.path]);
+    await sb.from('bucket_photos').delete().eq('id', p.id);
+  }
+  photos = photos.filter(x => x.id !== p.id);
+  closeLightbox();
+  showToast('삭제됐어요');
+  renderPhotos();
 }
 
 // ── 지도 ──
