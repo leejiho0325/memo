@@ -242,12 +242,18 @@
   }
   .photo-day-group { margin-bottom: 24px; }
   .photo-day-label { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; }
-  .photo-strip-row { display: flex; flex-wrap: wrap; gap: 16px; }
+  .photo-day-columns { display: flex; gap: 14px; align-items: flex-start; }
+  .photo-author-row { flex: 1; min-width: 0; }
+  .photo-author-label {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700;
+    color: white; padding: 2px 10px; border-radius: 999px; margin-bottom: 8px;
+  }
+  .photo-strip-row { display: flex; flex-direction: column; gap: 14px; align-items: center; }
   .photo-strip {
-    background: var(--white); border-radius: 6px; padding: 10px 10px 14px;
+    width: 100%; max-width: 165px; background: var(--white); border-radius: 6px; padding: 10px 10px 14px;
     box-shadow: 0 6px 18px var(--shadow), 0 1px 3px rgba(0,0,0,0.08);
     display: flex; flex-direction: column; gap: 6px;
-    width: 148px; transform: rotate(var(--tilt, 0deg));
+    transform: rotate(var(--tilt, 0deg));
   }
   .photo-strip-photo {
     position: relative; border-radius: 3px; overflow: hidden;
@@ -394,8 +400,8 @@
     .cal-dow { font-size: 10px; padding: 4px 0; }
     .cal-month { font-size: 14px; }
     .add-box { padding: 14px 12px; }
-    .photo-strip { width: 44%; }
-    .photo-strip-row { gap: 10px; }
+    .photo-strip { max-width: 100%; }
+    .photo-day-columns { gap: 8px; }
   }
 </style>
 </head>
@@ -957,32 +963,52 @@ function renderPhotos() {
   });
   const keys = Object.keys(groups).sort((a,b) => b.localeCompare(a));
   const tilts = [-2, 1.5, -1, 2, -1.5, 1];
+
+  function renderStrip(chunk, tiltIdx, label) {
+    const shots = chunk.map(p => {
+      const d = new Date(p.created_at);
+      const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      const isVid = isVideoUrl(p.url);
+      const mediaHtml = isVid
+        ? `<video src="${p.url}" muted playsinline preload="metadata"></video><span class="photo-play-icon">▶</span>`
+        : `<img src="${p.url}" loading="lazy"/>`;
+      return `
+      <div class="photo-strip-photo" onclick='openLightbox(${JSON.stringify(p.id)})'>
+        ${mediaHtml}
+        <span class="photo-thumb-time">${timeStr}</span>
+      </div>`;
+    }).join('');
+    const emptySlots = Array.from({ length: Math.max(0, 4 - chunk.length) })
+      .map(() => `<div class="photo-strip-empty"></div>`).join('');
+    const tilt = tilts[tiltIdx % tilts.length];
+    return `<div class="photo-strip" style="--tilt:${tilt}deg">${shots}${emptySlots}<div class="photo-strip-footer">${label}</div></div>`;
+  }
+
   wrap.innerHTML = keys.map(key => {
     const items = groups[key].slice().sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
     const label = photoDayLabel(items[0].created_at);
-    const chunks = [];
-    for (let i = 0; i < items.length; i += 4) chunks.push(items.slice(i, i + 4));
-    const strips = chunks.map((chunk, ci) => {
-      const shots = chunk.map(p => {
-        const d = new Date(p.created_at);
-        const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-        const isVid = isVideoUrl(p.url);
-        const mediaHtml = isVid
-          ? `<video src="${p.url}" muted playsinline preload="metadata"></video><span class="photo-play-icon">▶</span>`
-          : `<img src="${p.url}" loading="lazy"/>`;
-        return `
-        <div class="photo-strip-photo" onclick='openLightbox(${JSON.stringify(p.id)})'>
-          ${mediaHtml}
-          <span class="photo-thumb-time">${timeStr}</span>
-          ${p.author ? `<span class="photo-thumb-badge" style="background:${p.author_color || '#7c3aed'}">${p.author}</span>` : ''}
-        </div>`;
-      }).join('');
-      const emptySlots = Array.from({ length: Math.max(0, 4 - chunk.length) })
-        .map(() => `<div class="photo-strip-empty"></div>`).join('');
-      const tilt = tilts[(ci) % tilts.length];
-      return `<div class="photo-strip" style="--tilt:${tilt}deg">${shots}${emptySlots}<div class="photo-strip-footer">${label}</div></div>`;
+
+    const authorGroups = {};
+    const authorOrder = [];
+    items.forEach(p => {
+      const name = p.author || '나';
+      if (!authorGroups[name]) { authorGroups[name] = { color: p.author_color || '#7c3aed', items: [] }; authorOrder.push(name); }
+      authorGroups[name].items.push(p);
+    });
+
+    let tiltCounter = 0;
+    const rows = authorOrder.map(name => {
+      const g = authorGroups[name];
+      const chunks = [];
+      for (let i = 0; i < g.items.length; i += 4) chunks.push(g.items.slice(i, i + 4));
+      const stripsHtml = chunks.map(chunk => renderStrip(chunk, tiltCounter++, label)).join('');
+      return `<div class="photo-author-row">
+        <span class="photo-author-label" style="background:${g.color}">${name}</span>
+        <div class="photo-strip-row">${stripsHtml}</div>
+      </div>`;
     }).join('');
-    return `<div class="photo-day-group"><div class="photo-day-label">${label}</div><div class="photo-strip-row">${strips}</div></div>`;
+
+    return `<div class="photo-day-group"><div class="photo-day-label">${label}</div><div class="photo-day-columns">${rows}</div></div>`;
   }).join('');
 }
 
