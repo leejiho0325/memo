@@ -234,7 +234,7 @@
   }
   .photo-upload-box:hover { border-color: var(--purple); }
   .photo-preview-wrap { margin-top: 10px; position: relative; }
-  .photo-preview-wrap img { width: 100%; max-height: 320px; object-fit: cover; border-radius: 14px; display: block; }
+  .photo-preview-wrap img, .photo-preview-wrap video { width: 100%; max-height: 320px; object-fit: cover; border-radius: 14px; display: block; }
   .photo-preview-clear {
     position: absolute; top: 8px; right: 8px; background: rgba(30,27,46,0.6);
     color: white; border: none; border-radius: 50%; width: 26px; height: 26px;
@@ -253,7 +253,11 @@
     position: relative; border-radius: 3px; overflow: hidden;
     aspect-ratio: 4/3; background: var(--purple-light); cursor: pointer;
   }
-  .photo-strip-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-strip-photo img, .photo-strip-photo video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-play-icon {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 20px; text-shadow: 0 1px 4px rgba(0,0,0,0.5); pointer-events: none;
+  }
   .photo-thumb-badge {
     position: absolute; bottom: 3px; left: 3px; font-size: 8px; font-weight: 700;
     color: white; padding: 1px 5px; border-radius: 999px;
@@ -275,7 +279,7 @@
     flex-direction: column; gap: 12px;
   }
   .lightbox-overlay.show { display: flex; }
-  .lightbox-overlay img { max-width: 100%; max-height: 70vh; border-radius: 12px; object-fit: contain; }
+  .lightbox-overlay img, .lightbox-overlay video { max-width: 100%; max-height: 70vh; border-radius: 12px; object-fit: contain; }
   .lightbox-caption { color: white; font-size: 14px; text-align: center; max-width: 480px; }
   .lightbox-meta { color: rgba(255,255,255,0.6); font-size: 12px; }
   .lightbox-close {
@@ -479,12 +483,12 @@
   <div class="panel" id="panel-photos">
     <div class="add-box">
       <div class="add-box-title">📷 사진 남기기</div>
-      <input type="file" id="photo-file-input" accept="image/*" capture="environment" style="display:none" onchange="onPhotoFileSelected(event)"/>
+      <input type="file" id="photo-file-input" accept="image/*,video/*" capture="environment" style="display:none" onchange="onPhotoFileSelected(event)"/>
       <div class="photo-upload-box" id="photo-upload-box" onclick="document.getElementById('photo-file-input').click()">
-        📷 탭해서 사진 찍기 / 고르기
+        📷 탭해서 사진/영상 찍기 · 고르기
       </div>
       <div class="photo-preview-wrap" id="photo-preview-wrap" style="display:none">
-        <img id="photo-preview-img"/>
+        <div id="photo-preview-media"></div>
         <button class="photo-preview-clear" onclick="clearPhotoSelection()">✕</button>
       </div>
       <div class="field-label">캡션 (선택)</div>
@@ -627,7 +631,7 @@
 </div>
 <div class="lightbox-overlay" id="lightbox-overlay">
   <button class="lightbox-close" onclick="closeLightbox()">✕</button>
-  <img id="lightbox-img" src=""/>
+  <div id="lightbox-media"></div>
   <div class="lightbox-caption" id="lightbox-caption"></div>
   <div class="lightbox-meta" id="lightbox-meta"></div>
   <button class="lightbox-del" id="lightbox-del-btn" onclick="deleteCurrentPhoto()">🗑️ 삭제</button>
@@ -877,9 +881,13 @@ function onPhotoFileSelected(e) {
   const file = e.target.files[0];
   if (!file) return;
   selectedPhotoFile = file;
+  const isVideo = file.type.startsWith('video/');
   const reader = new FileReader();
   reader.onload = () => {
-    document.getElementById('photo-preview-img').src = reader.result;
+    const mediaEl = document.getElementById('photo-preview-media');
+    mediaEl.innerHTML = isVideo
+      ? `<video src="${reader.result}" controls muted playsinline></video>`
+      : `<img src="${reader.result}"/>`;
     document.getElementById('photo-preview-wrap').style.display = 'block';
     document.getElementById('photo-upload-box').style.display = 'none';
   };
@@ -889,6 +897,7 @@ function onPhotoFileSelected(e) {
 function clearPhotoSelection() {
   selectedPhotoFile = null;
   document.getElementById('photo-file-input').value = '';
+  document.getElementById('photo-preview-media').innerHTML = '';
   document.getElementById('photo-preview-wrap').style.display = 'none';
   document.getElementById('photo-upload-box').style.display = 'flex';
 }
@@ -918,6 +927,10 @@ async function uploadPhoto() {
   } finally {
     btn.disabled = false; btn.textContent = '올리기';
   }
+}
+
+function isVideoUrl(url) {
+  return /\.(mp4|mov|webm|m4v|3gp|avi)(\?|$)/i.test(url);
 }
 
 function photoDayLabel(iso) {
@@ -953,9 +966,13 @@ function renderPhotos() {
       const shots = chunk.map(p => {
         const d = new Date(p.created_at);
         const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        const isVid = isVideoUrl(p.url);
+        const mediaHtml = isVid
+          ? `<video src="${p.url}" muted playsinline preload="metadata"></video><span class="photo-play-icon">▶</span>`
+          : `<img src="${p.url}" loading="lazy"/>`;
         return `
         <div class="photo-strip-photo" onclick='openLightbox(${JSON.stringify(p.id)})'>
-          <img src="${p.url}" loading="lazy"/>
+          ${mediaHtml}
           <span class="photo-thumb-time">${timeStr}</span>
           ${p.author ? `<span class="photo-thumb-badge" style="background:${p.author_color || '#7c3aed'}">${p.author}</span>` : ''}
         </div>`;
@@ -973,7 +990,10 @@ function openLightbox(id) {
   const p = photos.find(x => x.id === id);
   if (!p) return;
   currentLightboxPhoto = p;
-  document.getElementById('lightbox-img').src = p.url;
+  const mediaEl = document.getElementById('lightbox-media');
+  mediaEl.innerHTML = isVideoUrl(p.url)
+    ? `<video src="${p.url}" controls autoplay playsinline></video>`
+    : `<img src="${p.url}"/>`;
   document.getElementById('lightbox-caption').textContent = p.caption || '';
   const d = new Date(p.created_at);
   document.getElementById('lightbox-meta').textContent = `${p.author || '나'} · ${photoDayLabel(p.created_at)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
@@ -982,6 +1002,7 @@ function openLightbox(id) {
 
 function closeLightbox() {
   document.getElementById('lightbox-overlay').classList.remove('show');
+  document.getElementById('lightbox-media').innerHTML = '';
   currentLightboxPhoto = null;
 }
 
