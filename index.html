@@ -418,8 +418,20 @@
     .cal-dow { font-size: 10px; padding: 4px 0; }
     .cal-month { font-size: 14px; }
     .add-box { padding: 14px 12px; }
-    .photo-strip { max-width: 100%; }
-    .photo-day-columns { gap: 8px; }
+    .photo-day-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      align-items: start;
+    }
+    .photo-author-row {
+      width: 100%;
+      min-width: 0;
+    }
+    .photo-strip {
+      max-width: 100%;
+      width: 100%;
+    }
   }
 </style>
 </head>
