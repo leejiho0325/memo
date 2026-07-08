@@ -24,6 +24,46 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Gowun Dodum', sans-serif; background: var(--purple-bg); color: var(--text); min-height: 100vh; }
 
+  /* HOME */
+  .home-hero {
+    background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+    border-radius: 20px; padding: 26px 22px; color: white; margin-bottom: 20px;
+  }
+  .home-hero-title { font-family: 'Nanum Myeongjo', serif; font-size: 20px; font-weight: 700; }
+  .home-hero-sub { font-size: 12px; opacity: 0.85; margin-top: 5px; }
+  .home-dday-strip {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+    padding: 5px 14px; background: rgba(255,255,255,0.18); border-radius: 999px;
+    font-size: 13px; cursor: pointer; transition: background 0.15s;
+  }
+  .home-dday-strip:hover { background: rgba(255,255,255,0.28); }
+  .home-dday-strip b { font-weight: 800; }
+  .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+  .home-card {
+    background: var(--white); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    cursor: pointer; transition: transform 0.15s, border-color 0.15s;
+  }
+  .home-card:hover { border-color: var(--purple); transform: translateY(-2px); }
+  .home-card-icon { font-size: 28px; }
+  .home-card-label { font-size: 13px; font-weight: 700; color: var(--purple-dark); }
+  .home-preview-section { margin-bottom: 16px; }
+  .home-preview-title { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; }
+  .home-next-event {
+    background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer;
+  }
+  .home-dday {
+    background: var(--purple-light); color: var(--purple-dark); font-weight: 700;
+    font-size: 13px; padding: 6px 12px; border-radius: 10px; flex-shrink: 0; text-align: center;
+  }
+  .home-photo-row { display: flex; gap: 8px; }
+  .home-photo-row .home-photo-thumb {
+    width: 68px; height: 68px; border-radius: 12px; overflow: hidden; cursor: pointer; flex-shrink: 0;
+    background: var(--purple-light);
+  }
+  .home-photo-row img, .home-photo-row video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
   /* HEADER */
   header {
     background: var(--white); border-bottom: 1px solid var(--border);
@@ -438,19 +478,35 @@
 <body>
 
 <header>
-  <h1>메모장</h1>
+  <h1 onclick="goHome()" style="cursor:pointer">메모장</h1>
   <div id="user-badge-wrap" style="margin-right:8px"></div>
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('places', this)">📍 갈 곳</button>
-    <button class="tab-btn" onclick="switchTab('memo', this)">📝 메모</button>
-    <button class="tab-btn" onclick="switchTab('photos', this)">📷 로그</button>
-    <button class="tab-btn" onclick="switchTab('cal', this)">📅 일정</button>
+    <button class="tab-btn" data-tab="places" onclick="switchTab('places', this)">📍 갈 곳</button>
+    <button class="tab-btn" data-tab="memo" onclick="switchTab('memo', this)">📝 메모</button>
+    <button class="tab-btn" data-tab="photos" onclick="switchTab('photos', this)">📷 로그</button>
+    <button class="tab-btn" data-tab="cal" onclick="switchTab('cal', this)">📅 일정</button>
   </div>
 </header>
 
 <main>
+  <!-- 홈 -->
+  <div class="panel active" id="panel-home">
+    <div class="home-hero">
+      <div class="home-hero-title">우리 둘의 메모장</div>
+      <div class="home-hero-sub" id="home-hero-sub">오늘도 좋은 하루 보내</div>
+      <div class="home-dday-strip" id="home-dday-strip" onclick="openAnniversaryModal()"></div>
+    </div>
+    <div class="home-grid">
+      <div class="home-card" onclick="goTab('places')"><span class="home-card-icon">📍</span><span class="home-card-label">갈 곳</span></div>
+      <div class="home-card" onclick="goTab('memo')"><span class="home-card-icon">📝</span><span class="home-card-label">메모</span></div>
+      <div class="home-card" onclick="goTab('photos')"><span class="home-card-icon">📷</span><span class="home-card-label">로그</span></div>
+      <div class="home-card" onclick="goTab('cal')"><span class="home-card-icon">📅</span><span class="home-card-label">일정</span></div>
+    </div>
+    <div id="home-preview"></div>
+  </div>
+
   <!-- 갈 곳 탭 -->
-  <div class="panel active" id="panel-places">
+  <div class="panel" id="panel-places">
     <div class="add-box">
       <div class="add-box-title">📍 새 장소 추가</div>
       <div class="field-label">🔗 링크 (카카오맵 / 인스타 / 네이버맵)</div>
@@ -665,6 +721,18 @@
     <button class="btn-save" onclick="saveUserSetup()">시작하기</button>
   </div>
 </div>
+<div class="modal-overlay" id="anniversary-overlay">
+  <div class="modal">
+    <div class="modal-title">💜 디데이 설정</div>
+    <div class="field-label">사귄 날 (기준일)</div>
+    <input type="date" id="anniversary-date-input"/>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAnniversaryModal()">취소</button>
+      <button class="btn-confirm" onclick="saveAnniversary()">저장하기</button>
+    </div>
+  </div>
+</div>
+
 <div class="lightbox-overlay" id="lightbox-overlay">
   <button class="lightbox-close" onclick="closeLightbox()">✕</button>
   <div id="lightbox-media"></div>
@@ -690,6 +758,7 @@ let events = [];
 let photos = [];
 let selectedPhotoFile = null;
 let currentLightboxPhoto = null;
+let settings = { anniversary_date: null };
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let selectedDate = null;
@@ -697,7 +766,7 @@ let filter = '전체';
 let map = null;
 let markers = [];
 let geocodeCache = {};
-let currentTab = 'places';
+let currentTab = 'home';
 
 async function initSupabase() {
   if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') return false;
@@ -722,15 +791,21 @@ async function loadAll() {
     if (!r3.error) events = r3.data || [];
     if (!r4.error) photos = r4.data || [];
     else console.warn('사진 로딩 실패:', r4.error.message);
+    try {
+      const { data: s } = await sb.from('bucket_settings').select('*').eq('id', 1).maybeSingle();
+      if (s) settings.anniversary_date = s.anniversary_date;
+    } catch(e) { console.warn('설정 로딩 실패:', e.message); }
   } else {
     try { places = JSON.parse(localStorage.getItem('bucket_places') || '[]'); } catch(e) { places = []; }
     try { memos = JSON.parse(localStorage.getItem('bucket_memos') || '[]'); } catch(e) { memos = []; }
     try { events = JSON.parse(localStorage.getItem('bucket_events') || '[]'); } catch(e) { events = []; }
+    try { settings = JSON.parse(localStorage.getItem('app_settings') || '{}'); } catch(e) { settings = { anniversary_date: null }; }
   }
   renderPlaces();
   renderMemos();
   renderCal();
   renderPhotos();
+  renderHome();
   initMap();
   updateMapPins();
 }
@@ -749,6 +824,92 @@ function switchTab(tab, btn) {
   document.getElementById('panel-' + tab).classList.add('active');
   if (tab === 'places' && map) setTimeout(() => map.invalidateSize(), 100);
   if (tab === 'cal') renderCal();
+}
+
+function goHome() {
+  currentTab = 'home';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-home').classList.add('active');
+  renderHome();
+}
+
+function goTab(tab) {
+  const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+  if (btn) switchTab(tab, btn);
+}
+
+function formatDday(dateStr) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(dateStr + 'T00:00:00');
+  const diff = Math.round((target - today) / 86400000);
+  if (diff === 0) return 'D-DAY';
+  if (diff > 0) return `D-${diff}`;
+  return `D+${Math.abs(diff)}`;
+}
+
+function calcTogetherDays(dateStr) {
+  const start = new Date(dateStr + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((today - start) / 86400000) + 1;
+}
+
+function renderHome() {
+  const subEl = document.getElementById('home-hero-sub');
+  if (subEl) {
+    const names = new Set();
+    [...places, ...memos, ...events, ...photos].forEach(x => { if (x.author) names.add(x.author); });
+    if (currentUser) names.add(currentUser.name);
+    const list = Array.from(names);
+    subEl.textContent = list.length >= 2 ? `${list[0]} ♥ ${list[1]}` : (list.length === 1 ? `${list[0]}의 메모장` : '오늘도 좋은 하루 보내');
+  }
+
+  const ddayEl = document.getElementById('home-dday-strip');
+  if (ddayEl) {
+    if (settings.anniversary_date) {
+      const n = calcTogetherDays(settings.anniversary_date);
+      ddayEl.innerHTML = `💜 함께한 지 <b>${n}</b>일째`;
+    } else {
+      ddayEl.innerHTML = `📅 디데이 설정하기`;
+    }
+  }
+
+  const wrap = document.getElementById('home-preview');
+  if (!wrap) return;
+  const todayStr = toLocalDateStr(new Date());
+  const upcoming = events
+    .filter(e => (e.end_date || e.date) >= todayStr)
+    .sort((a,b) => a.date.localeCompare(b.date))[0];
+
+  let html = '';
+  if (upcoming) {
+    html += `<div class="home-preview-section">
+      <div class="home-preview-title">다음 일정</div>
+      <div class="home-next-event" onclick="goTab('cal')">
+        <div class="home-dday">${formatDday(upcoming.date)}</div>
+        <div>
+          <div style="font-weight:700;font-size:14px">${upcoming.title}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${upcoming.date}${upcoming.end_date && upcoming.end_date !== upcoming.date ? ' ~ ' + upcoming.end_date : ''}${upcoming.time ? ' · ' + upcoming.time : ''}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if (photos.length) {
+    const recent = photos.slice(0, 4);
+    const thumbs = recent.map(p => {
+      const media = isVideoUrl(p.url)
+        ? `<video src="${p.url}" muted playsinline preload="metadata"></video>`
+        : `<img src="${p.url}" loading="lazy"/>`;
+      return `<div class="home-photo-thumb" onclick="goTab('photos')">${media}</div>`;
+    }).join('');
+    html += `<div class="home-preview-section">
+      <div class="home-preview-title">최근 사진</div>
+      <div class="home-photo-row">${thumbs}</div>
+    </div>`;
+  }
+
+  wrap.innerHTML = html;
 }
 
 
@@ -979,10 +1140,12 @@ function renderPhotos() {
   const wrap = document.getElementById('photo-timeline');
   if (!sb) {
     wrap.innerHTML = `<div class="empty-state"><span class="big">📷</span>사진 기능은 Supabase 연결 후 사용할 수 있어요</div>`;
+    if (typeof renderHome === 'function') renderHome();
     return;
   }
   if (!photos.length) {
     wrap.innerHTML = `<div class="empty-state"><span class="big">📷</span>아직 사진이 없어요</div>`;
+    if (typeof renderHome === 'function') renderHome();
     return;
   }
   const groups = {};
@@ -1040,6 +1203,7 @@ function renderPhotos() {
 
     return `<div class="photo-day-group"><div class="photo-day-label">${label}</div><div class="photo-day-columns">${rows}</div></div>`;
   }).join('');
+  if (typeof renderHome === 'function') renderHome();
 }
 
 function openLightbox(id) {
@@ -1470,6 +1634,7 @@ function renderCal() {
 
   document.getElementById('cal-grid').innerHTML = html;
   renderEventList();
+  if (typeof renderHome === 'function') renderHome();
 }
 
 function selectDate(dateStr) {
@@ -1534,6 +1699,31 @@ function renderEventList() {
     </div>`;
   }).join('');
 }
+
+function openAnniversaryModal() {
+  document.getElementById('anniversary-date-input').value = settings.anniversary_date || '';
+  document.getElementById('anniversary-overlay').classList.add('show');
+}
+function closeAnniversaryModal() {
+  document.getElementById('anniversary-overlay').classList.remove('show');
+}
+async function saveAnniversary() {
+  const date = document.getElementById('anniversary-date-input').value;
+  if (!date) { showToast('날짜를 선택해줘'); return; }
+  settings.anniversary_date = date;
+  if (sb) {
+    const { error } = await sb.from('bucket_settings').upsert({ id: 1, anniversary_date: date });
+    if (error) { showToast('저장 실패: ' + error.message); return; }
+  } else {
+    localStorage.setItem('app_settings', JSON.stringify(settings));
+  }
+  closeAnniversaryModal();
+  showToast('디데이 저장됐어요!');
+  renderHome();
+}
+document.getElementById('anniversary-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeAnniversaryModal();
+});
 
 function showToast(msg) {
   const t = document.getElementById('toast');
