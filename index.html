@@ -269,9 +269,27 @@
     color: white; padding: 1px 5px; border-radius: 999px;
   }
   .photo-thumb-time {
-    position: absolute; top: 3px; right: 3px; font-size: 8px; font-weight: 700;
-    color: white; padding: 1px 5px; border-radius: 999px; background: rgba(30,27,46,0.55);
-  }
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Nanum Myeongjo', serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #fff;
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    text-shadow:
+        0 2px 6px rgba(0,0,0,.8),
+        0 0 12px rgba(0,0,0,.5);
+    pointer-events: none;
+    z-index: 10;
+}
   .photo-strip-footer {
     text-align: center; font-family: 'Nanum Myeongjo', serif; font-size: 11px;
     color: var(--purple-dark); padding-top: 2px; letter-spacing: 0.3px;
@@ -489,7 +507,7 @@
   <div class="panel" id="panel-photos">
     <div class="add-box">
       <div class="add-box-title">📷 사진 남기기</div>
-      <input type="file" id="photo-file-input" accept="image/*,video/*" capture="environment" style="display:none" onchange="onPhotoFileSelected(event)"/>
+      <input type="file" id="photo-file-input" accept="image/*,video/*" style="display:none" onchange="onPhotoFileSelected(event)"/>
       <div class="photo-upload-box" id="photo-upload-box" onclick="document.getElementById('photo-file-input').click()">
         📷 탭해서 사진/영상 찍기 · 고르기
       </div>
