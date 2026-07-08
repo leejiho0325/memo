@@ -168,82 +168,41 @@
   .toast.show { transform: translateX(-50%) translateY(0); }
 
   @media (max-width: 600px) {
-    header { padding: 12px 14px; gap: 8px; }
-    header h1 { font-size: 15px; }
-    .tab-btn { padding: 5px 9px; font-size: 11px; }
-    main { padding: 14px 12px 60px; }
-    .add-box { padding: 14px; }
-    .row2 { flex-direction: column; gap: 6px; }
-    .map-wrap { height: 220px; }
-    .place-card { padding: 11px 12px; }
-    .fbtn { padding: 4px 10px; font-size: 11px; }
-    .btn-save { font-size: 14px; }
-    input, select, textarea { font-size: 16px; }
-  }
+    .cal-day { min-height: 44px; padding: 4px 2px 2px; }
+    .cal-day-num { font-size: 11px; }
+    .cal-ev-preview { font-size: 8px; padding: 1px 2px; border-radius: 2px; }
+    .cal-dow { font-size: 10px; padding: 4px 0; }
+    .cal-month { font-size: 14px; }
+    .add-box { padding: 14px 12px; }
 
-  /* EDIT MODAL */
-  .modal-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(30,27,46,0.55); z-index: 9999;
-    align-items: flex-start; justify-content: center;
-    padding: 20px; overflow-y: auto;
-  }
-  .modal-overlay.show { display: flex; }
-  .modal {
-    background: var(--white); border-radius: 20px;
-    border: 1px solid var(--border); padding: 22px;
-    width: 100%; max-width: 440px;
-    box-shadow: 0 8px 40px var(--shadow);
-    margin: auto;
-    max-height: 90vh; overflow-y: auto;
-  }
-  .modal-title { font-size: 14px; font-weight: 700; color: var(--purple-dark); margin-bottom: 14px; }
-  .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
-  .btn-cancel {
-    flex: 1; padding: 10px; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--purple-light);
-    color: var(--text-muted); font-size: 14px; cursor: pointer;
-    font-family: 'Gowun Dodum', sans-serif;
-  }
-  .btn-confirm {
-    flex: 2; padding: 10px; border-radius: 10px; border: none;
-    background: linear-gradient(135deg, var(--purple), var(--purple-dark));
-    color: white; font-size: 14px; cursor: pointer;
-    font-family: 'Gowun Dodum', sans-serif;
-  }
+    /* Instagram DM 스타일 */
+    .photo-day-columns{
+        display:flex;
+        flex-direction:row;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:8px;
+    }
 
-  /* EVENT TYPE TOGGLE */
-  .ev-type-toggle { display: flex; gap: 8px; margin-bottom: 4px; }
-  .ev-type-btn {
-    flex: 1; padding: 9px; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--purple-light);
-    color: var(--text-muted); font-family: 'Gowun Dodum', sans-serif;
-    font-size: 13px; cursor: pointer; transition: all 0.15s;
-  }
-  .ev-type-btn.active {
-    background: linear-gradient(135deg, var(--purple), var(--purple-dark));
-    color: white; border-color: transparent; font-weight: 700;
-  }
+    .photo-author-row{
+        flex:1;
+        min-width:0;
+    }
 
-  /* PHOTO LOG */
-  .photo-upload-box {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    border: 2px dashed var(--border); border-radius: 14px;
-    padding: 22px; cursor: pointer; color: var(--text-muted);
-    font-size: 14px; background: var(--purple-light); transition: border-color .15s;
-  }
-  .photo-upload-box:hover { border-color: var(--purple); }
-  .photo-preview-wrap { margin-top: 10px; position: relative; }
-  .photo-preview-wrap img, .photo-preview-wrap video { width: 100%; max-height: 320px; object-fit: cover; border-radius: 14px; display: block; }
-  .photo-preview-clear {
-    position: absolute; top: 8px; right: 8px; background: rgba(30,27,46,0.6);
-    color: white; border: none; border-radius: 50%; width: 26px; height: 26px;
-    cursor: pointer; font-size: 14px; line-height: 1;
-  }
-  .photo-day-group { margin-bottom: 24px; }
-  .photo-day-label { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; }
-  .photo-day-columns { display: flex; gap: 14px; align-items: flex-start; }
-  .photo-author-row { flex: 1; min-width: 0; }
+    .photo-strip-row{
+        gap:8px;
+    }
+
+    .photo-strip{
+        width:100%;
+        max-width:none;
+        padding:6px;
+    }
+
+    .photo-strip-footer{
+        font-size:9px;
+    }
+}
   .photo-author-label {
     display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700;
     color: white; padding: 2px 10px; border-radius: 999px; margin-bottom: 8px;
