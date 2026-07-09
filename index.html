@@ -6,7 +6,6 @@
 <title>메모장</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   :root {
     --purple: #a78bfa;
@@ -38,6 +37,28 @@
   }
   .home-dday-strip:hover { background: rgba(255,255,255,0.28); }
   .home-dday-strip b { font-weight: 800; }
+  .home-streak {
+    font-size: 12px; color: var(--text-muted); text-align: center; margin: -8px 0 18px;
+  }
+  .home-streak b { color: var(--purple-dark); font-weight: 800; }
+  .home-card { position: relative; }
+  .home-card-dot {
+    position: absolute; top: 10px; right: 12px; width: 9px; height: 9px;
+    border-radius: 50%; background: #e24b4a; display: none;
+  }
+  .home-card.has-new .home-card-dot { display: block; }
+  .tab-btn { position: relative; }
+  .tab-dot {
+    position: absolute; top: 2px; right: 2px; width: 7px; height: 7px;
+    border-radius: 50%; background: #e24b4a;
+  }
+  .home-memory-card {
+    background: var(--white); border: 1px solid var(--border); border-radius: 16px;
+    padding: 12px; margin-bottom: 16px; display: flex; gap: 12px; align-items: center; cursor: pointer;
+  }
+  .home-memory-card img, .home-memory-card video { width: 60px; height: 60px; object-fit: cover; border-radius: 12px; flex-shrink: 0; }
+  .home-memory-title { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 3px; }
+  .home-memory-sub { font-size: 12px; color: var(--purple-dark); font-weight: 700; }
   .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
   .home-card {
     background: var(--white); border: 1px solid var(--border); border-radius: 16px;
@@ -122,25 +143,6 @@
   }
   .btn-save:hover { opacity: 0.88; }
 
-  /* MAP */
-  .map-wrap {
-    border-radius: 16px; overflow: hidden; border: 1px solid var(--border);
-    margin-bottom: 18px; position: relative; height: 300px;
-    z-index: 0;
-  }
-  #map { width: 100%; height: 100%; }
-  .map-empty {
-    position: absolute; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    color: var(--text-muted); font-size: 13px; gap: 8px;
-    pointer-events: none; background: var(--purple-light);
-  }
-  .map-empty-icon { font-size: 32px; }
-  .leaflet-popup-content-wrapper { border-radius: 12px !important; border: 1px solid var(--border) !important; box-shadow: 0 4px 20px var(--shadow) !important; font-family: 'Gowun Dodum', sans-serif !important; }
-  .leaflet-popup-content { margin: 10px 14px !important; font-size: 13px !important; color: var(--text) !important; }
-  .popup-name { font-weight: 700; font-size: 14px; color: var(--purple-dark); margin-bottom: 2px; }
-  .popup-addr { color: var(--text-muted); font-size: 12px; }
-
   /* FILTERS */
   .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
   .fbtn {
@@ -214,7 +216,6 @@
     main { padding: 14px 12px 60px; }
     .add-box { padding: 14px; }
     .row2 { flex-direction: column; gap: 6px; }
-    .map-wrap { height: 220px; }
     .place-card { padding: 11px 12px; }
     .fbtn { padding: 4px 10px; font-size: 11px; }
     .btn-save { font-size: 14px; }
@@ -250,6 +251,32 @@
     background: linear-gradient(135deg, var(--purple), var(--purple-dark));
     color: white; font-size: 14px; cursor: pointer;
     font-family: 'Gowun Dodum', sans-serif;
+  }
+  .generic-comment-list {
+    display: flex; flex-direction: column; gap: 8px; max-height: 260px;
+    overflow-y: auto; margin-bottom: 12px;
+  }
+  .generic-comment-item {
+    display: flex; align-items: flex-start; gap: 8px; background: var(--purple-light);
+    border-radius: 12px; padding: 8px 10px;
+  }
+  .generic-comment-author {
+    font-size: 10px; font-weight: 700; color: white; padding: 2px 8px;
+    border-radius: 999px; flex-shrink: 0; margin-top: 1px;
+  }
+  .generic-comment-text { flex: 1; font-size: 13px; color: var(--text); word-break: break-word; }
+  .generic-comment-del {
+    background: none; border: none; color: var(--text-muted); cursor: pointer;
+    font-size: 12px; flex-shrink: 0;
+  }
+  .generic-comment-input-row { display: flex; gap: 8px; }
+  .generic-comment-input-row input {
+    flex: 1; padding: 9px 13px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--purple-light); font-family: 'Gowun Dodum', sans-serif; font-size: 13px; outline: none;
+  }
+  .generic-comment-input-row button {
+    background: var(--purple-dark); color: white; border: none; width: 36px; height: 36px;
+    border-radius: 50%; font-size: 14px; cursor: pointer; flex-shrink: 0;
   }
 
   /* EVENT TYPE TOGGLE */
@@ -360,26 +387,21 @@
     padding: 7px 16px; border-radius: 999px; font-size: 12px; cursor: pointer;
     font-family: 'Gowun Dodum', sans-serif;
   }
-  .lightbox-comment-overlay {
+  .lightbox-caption-overlay {
     position: absolute; left: 0; right: 0; bottom: 0;
-    padding: 30px 16px 14px; pointer-events: none;
+    padding: 30px 16px 14px;
     background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 55%, transparent 100%);
   }
+  .lightbox-caption-overlay .lightbox-comment-text {
+    font-size: 18px; font-weight: 700; font-family: 'Gowun Dodum', sans-serif; color: white;
+  }
   .lightbox-comment-list {
-    display: flex; flex-direction: column; gap: 6px; align-items: flex-start; max-height: 38vh;
-    overflow-y: auto; pointer-events: auto;
+    display: flex; flex-direction: column; gap: 6px; align-items: flex-start; max-height: 22vh;
+    overflow-y: auto; width: 100%; max-width: 460px;
   }
   .lightbox-comment-item {
     display: flex; align-items: center; gap: 6px; max-width: 88%;
-    background: rgba(30,24,50,0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    border-radius: 999px; padding: 5px 12px 5px 5px;
-  }
-  .lightbox-caption-item {
-    background: none; backdrop-filter: none; -webkit-backdrop-filter: none;
-    padding: 1px 2px; max-width: 100%;
-  }
-  .lightbox-caption-item .lightbox-comment-text {
-    font-size: 18px; font-weight: 700; font-family: 'Gowun Dodum', sans-serif;
+    background: rgba(255,255,255,0.1); border-radius: 999px; padding: 5px 12px 5px 5px;
   }
   .lightbox-comment-author {
     font-family: 'Gowun Dodum', sans-serif; font-weight: 700; font-size: 11px;
@@ -389,7 +411,7 @@
     flex: 1; word-break: break-word; color: white;
     font-family: 'Gowun Dodum', sans-serif; font-size: 14px; line-height: 1.4;
   }
-  .lightbox-comment-del { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 11px; flex-shrink: 0; pointer-events: auto; }
+  .lightbox-comment-del { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 11px; flex-shrink: 0; }
   .lightbox-comment-input-row { display: flex; gap: 8px; width: 100%; max-width: 460px; }
   .lightbox-comment-input-row input {
     flex: 1; padding: 10px 15px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.2);
@@ -543,11 +565,12 @@
       <div class="home-dday-strip" id="home-dday-strip" onclick="openAnniversaryModal()"></div>
     </div>
     <div class="home-grid">
-      <div class="home-card" onclick="goTab('places')"><span class="home-card-icon">📍</span><span class="home-card-label">갈 곳</span></div>
-      <div class="home-card" onclick="goTab('memo')"><span class="home-card-icon">📝</span><span class="home-card-label">메모</span></div>
-      <div class="home-card" onclick="goTab('photos')"><span class="home-card-icon">📷</span><span class="home-card-label">로그</span></div>
-      <div class="home-card" onclick="goTab('cal')"><span class="home-card-icon">📅</span><span class="home-card-label">일정</span></div>
+      <div class="home-card" data-tab="places" onclick="goTab('places')"><span class="home-card-dot"></span><span class="home-card-icon">📍</span><span class="home-card-label">갈 곳</span></div>
+      <div class="home-card" data-tab="memo" onclick="goTab('memo')"><span class="home-card-dot"></span><span class="home-card-icon">📝</span><span class="home-card-label">메모</span></div>
+      <div class="home-card" data-tab="photos" onclick="goTab('photos')"><span class="home-card-dot"></span><span class="home-card-icon">📷</span><span class="home-card-label">로그</span></div>
+      <div class="home-card" data-tab="cal" onclick="goTab('cal')"><span class="home-card-dot"></span><span class="home-card-icon">📅</span><span class="home-card-label">일정</span></div>
     </div>
+    <div class="home-streak" id="home-streak"></div>
     <div id="home-preview"></div>
   </div>
 
@@ -555,9 +578,9 @@
   <div class="panel" id="panel-places">
     <div class="add-box">
       <div class="add-box-title">📍 새 장소 추가</div>
-      <div class="field-label">🔗 링크 (카카오맵 / 인스타 / 네이버맵)</div>
-      <input type="text" id="inp-link" placeholder="https://..." oninput="onLinkInput(this.value)"/>
-      <div class="link-hint" id="link-hint">카카오맵 링크를 붙여넣으면 자동입력 시도해요</div>
+      <div class="field-label">🔗 카카오맵/네이버맵 공유 텍스트 붙여넣기 (또는 링크만)</div>
+      <textarea id="inp-link" placeholder="카카오맵에서 공유하기 누르고 복사한 내용 그대로 붙여넣어도 돼요" style="height:64px" oninput="onLinkInput(this.value)"></textarea>
+      <div class="link-hint" id="link-hint">붙여넣으면 이름/주소 자동입력 시도해요</div>
       <div class="row2">
         <div>
           <div class="field-label">장소 이름 *</div>
@@ -576,19 +599,11 @@
           </select>
         </div>
       </div>
-      <div class="field-label">주소 / 지역 (지도에 표시돼요)</div>
+      <div class="field-label">주소 / 지역</div>
       <input type="text" id="inp-addr" placeholder="예: 서울 마포구 연남동"/>
       <div class="field-label">메모</div>
       <textarea id="inp-memo" placeholder="메모..." style="height:52px"></textarea>
       <button class="btn-save" onclick="addPlace()">저장하기</button>
-    </div>
-
-    <div class="map-wrap">
-      <div id="map"></div>
-      <div class="map-empty" id="map-empty">
-        <span class="map-empty-icon">🗺️</span>
-        주소를 입력하면 지도에 표시돼요
-      </div>
     </div>
 
     <div class="filters">
@@ -757,6 +772,20 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="comment-modal-overlay">
+  <div class="modal">
+    <div class="modal-title">💬 댓글</div>
+    <div class="generic-comment-list" id="generic-comment-list"></div>
+    <div class="generic-comment-input-row">
+      <input type="text" id="generic-comment-input" placeholder="댓글 남기기..." onkeydown="if(event.key==='Enter'){event.preventDefault();addGenericComment();}"/>
+      <button onclick="addGenericComment()">➤</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeCommentModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="user-setup-overlay" id="user-setup-overlay">
   <div class="user-setup-box">
     <h2>처음 오셨군요 👋</h2>
@@ -783,11 +812,10 @@
   <button class="lightbox-close" onclick="closeLightbox()">✕</button>
   <div class="lightbox-media-wrap">
     <div id="lightbox-media"></div>
-    <div class="lightbox-comment-overlay" id="lightbox-comment-overlay-wrap">
-      <div class="lightbox-comment-list" id="lightbox-comment-list"></div>
-    </div>
+    <div class="lightbox-caption-overlay" id="lightbox-caption-overlay"></div>
   </div>
   <div class="lightbox-meta" id="lightbox-meta"></div>
+  <div class="lightbox-comment-list" id="lightbox-comment-list"></div>
   <div class="lightbox-comment-input-row">
     <input type="text" id="lightbox-comment-input" placeholder="이 순간에 한마디..." onkeydown="if(event.key==='Enter'){event.preventDefault();addPhotoComment();}"/>
     <button onclick="addPhotoComment()">➤</button>
@@ -796,7 +824,6 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const { createClient } = supabase;
@@ -817,10 +844,9 @@ let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let selectedDate = null;
 let filter = '전체';
-let map = null;
-let markers = [];
-let geocodeCache = {};
 let currentTab = 'home';
+let lastSeen = {};
+try { lastSeen = JSON.parse(localStorage.getItem('last_seen') || '{}'); } catch(e) { lastSeen = {}; }
 
 async function initSupabase() {
   if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') return false;
@@ -860,8 +886,7 @@ async function loadAll() {
   renderCal();
   renderPhotos();
   renderHome();
-  initMap();
-  updateMapPins();
+  updateNewBadges();
 }
 
 function saveLocal() {
@@ -870,14 +895,22 @@ function saveLocal() {
   localStorage.setItem('bucket_events', JSON.stringify(events));
 }
 
+function markTabSeen(tab) {
+  lastSeen[tab] = new Date().toISOString();
+  localStorage.setItem('last_seen', JSON.stringify(lastSeen));
+  document.querySelectorAll(`.tab-btn[data-tab="${tab}"] .tab-dot`).forEach(d => d.remove());
+  const card = document.querySelector(`.home-card[data-tab="${tab}"]`);
+  if (card) card.classList.remove('has-new');
+}
+
 function switchTab(tab, btn) {
   currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
-  if (tab === 'places' && map) setTimeout(() => map.invalidateSize(), 100);
   if (tab === 'cal') renderCal();
+  markTabSeen(tab);
 }
 
 function goHome() {
@@ -891,6 +924,27 @@ function goHome() {
 function goTab(tab) {
   const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
   if (btn) switchTab(tab, btn);
+}
+
+function updateNewBadges() {
+  const categories = { places, memo: memos, photos, cal: events };
+  const myName = currentUser ? currentUser.name : null;
+  Object.keys(categories).forEach(tab => {
+    const items = categories[tab] || [];
+    const seen = lastSeen[tab] || '1970-01-01T00:00:00.000Z';
+    const hasNew = items.some(it => {
+      const ts = it.created_at || it.date;
+      return ts && ts > seen && it.author && it.author !== myName;
+    });
+    const tabBtn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+    if (tabBtn) {
+      let dot = tabBtn.querySelector('.tab-dot');
+      if (hasNew && !dot) { dot = document.createElement('span'); dot.className = 'tab-dot'; tabBtn.appendChild(dot); }
+      else if (!hasNew && dot) { dot.remove(); }
+    }
+    const card = document.querySelector(`.home-card[data-tab="${tab}"]`);
+    if (card) card.classList.toggle('has-new', !!hasNew);
+  });
 }
 
 function formatDday(dateStr) {
@@ -1031,12 +1085,43 @@ function detectLinkType(url) {
 
 function onLinkInput(val) {
   const hint = document.getElementById('link-hint');
-  if (!val.trim()) { hint.textContent = '카카오맵 링크를 붙여넣으면 자동입력 시도해요'; hint.className = 'link-hint'; return; }
-  const type = detectLinkType(val.trim());
+  const raw = val;
+  const trimmed = val.trim();
+  if (!trimmed) { hint.textContent = '붙여넣으면 이름/주소 자동입력 시도해요'; hint.className = 'link-hint'; return; }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length);
+  const urlLine = lines.find(l => /^https?:\/\//.test(l)) || '';
+  const type = detectLinkType(urlLine || trimmed);
+
+  // 카카오맵/네이버맵 공유 텍스트 (여러 줄) 파싱: "[카카오맵] 이름" + 주소 줄 + 링크
+  if (lines.length > 1) {
+    let name = '', addr = '';
+    const titleLine = lines.find(l => /^\[(카카오맵|네이버맵|네이버 지도)\]/.test(l));
+    if (titleLine) {
+      name = titleLine.replace(/^\[(카카오맵|네이버맵|네이버 지도)\]\s*/, '').trim();
+    }
+    for (const line of lines) {
+      if (line === titleLine) continue;
+      if (/^https?:\/\//.test(line)) continue;
+      if (!addr) { addr = line; continue; }
+    }
+    if (name) document.getElementById('inp-name').value = name;
+    if (addr) document.getElementById('inp-addr').value = addr;
+    if (name || addr) {
+      hint.textContent = `이름/주소 자동입력 완료${urlLine ? '' : ''}`;
+      hint.className = 'link-hint ok';
+    } else {
+      hint.textContent = '텍스트는 인식했지만 이름/주소를 못 찾았어요. 직접 입력해줘';
+      hint.className = 'link-hint';
+    }
+    return;
+  }
+
+  // 링크 하나만 붙여넣은 경우 (기존 방식)
   if (type === 'kakao') {
     hint.textContent = '카카오맵 링크 인식됨'; hint.className = 'link-hint info';
-    const nameMatch = val.match(/[?&]name=([^&]+)/);
-    const addrMatch = val.match(/[?&]addr=([^&]+)/);
+    const nameMatch = trimmed.match(/[?&]name=([^&]+)/);
+    const addrMatch = trimmed.match(/[?&]addr=([^&]+)/);
     if (nameMatch) document.getElementById('inp-name').value = decodeURIComponent(nameMatch[1]);
     if (addrMatch) document.getElementById('inp-addr').value = decodeURIComponent(addrMatch[1]);
   } else if (type === 'instagram') {
@@ -1050,7 +1135,9 @@ function onLinkInput(val) {
 
 async function addPlace() {
   const name = document.getElementById('inp-name').value.trim();
-  const link = document.getElementById('inp-link').value.trim();
+  const linkRaw = document.getElementById('inp-link').value.trim();
+  const urlMatch = linkRaw.match(/https?:\/\/\S+/);
+  const link = urlMatch ? urlMatch[0] : linkRaw;
   const cat = document.getElementById('inp-cat').value;
   const addr = document.getElementById('inp-addr').value.trim();
   const memo = document.getElementById('inp-memo').value.trim();
@@ -1071,9 +1158,9 @@ async function addPlace() {
     places.unshift(newPlace); saveLocal();
   }
   ['inp-name','inp-link','inp-addr','inp-memo'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('link-hint').textContent = '카카오맵 링크를 붙여넣으면 자동입력 시도해요';
+  document.getElementById('link-hint').textContent = '붙여넣으면 이름/주소 자동입력 시도해요';
   document.getElementById('link-hint').className = 'link-hint';
-  showToast('저장됐어요!'); renderPlaces(); updateMapPins();
+  showToast('저장됐어요!'); renderPlaces();
 }
 
 async function toggleVisited(id) {
@@ -1081,7 +1168,7 @@ async function toggleVisited(id) {
   p.visited = !p.visited;
   if (sb) await sb.from('bucket_places').update({ visited: p.visited }).eq('id', id);
   else saveLocal();
-  renderPlaces(); updateMapPins();
+  renderPlaces();
 }
 
 async function deletePlace(id) {
@@ -1089,7 +1176,7 @@ async function deletePlace(id) {
   if (sb) await sb.from('bucket_places').delete().eq('id', id);
   places = places.filter(x => x.id !== id);
   if (!sb) saveLocal();
-  renderPlaces(); updateMapPins();
+  renderPlaces();
 }
 
 function setFilter(f, btn) {
@@ -1268,6 +1355,8 @@ function openLightbox(id) {
   mediaEl.innerHTML = isVideoUrl(p.url)
     ? `<video src="${p.url}" controls autoplay playsinline muted></video>`
     : `<img src="${p.url}"/>`;
+  document.getElementById('lightbox-caption-overlay').innerHTML = p.caption
+    ? `<div class="lightbox-comment-text">${p.caption}</div>` : '';
   const d = new Date(p.created_at);
   document.getElementById('lightbox-meta').textContent = `${p.author || '나'} · ${photoDayLabel(p.created_at)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   document.getElementById('lightbox-overlay').classList.add('show');
@@ -1276,28 +1365,23 @@ function openLightbox(id) {
 
 async function loadPhotoComments(photoId) {
   const listEl = document.getElementById('lightbox-comment-list');
-  const p = photos.find(x => x.id === photoId);
-  const captionHtml = p && p.caption
-    ? `<div class="lightbox-comment-item lightbox-caption-item"><span class="lightbox-comment-text">${p.caption}</span></div>`
-    : '';
-  listEl.innerHTML = `<div id="lightbox-comment-loading" style="color:rgba(255,255,255,0.6);font-size:12px">···</div>` + captionHtml;
-  if (!sb) { listEl.innerHTML = captionHtml; return; }
+  listEl.innerHTML = `<div style="color:rgba(255,255,255,0.5);font-size:12px">불러오는 중...</div>`;
+  if (!sb) { listEl.innerHTML = ''; return; }
   const { data, error } = await sb.from('bucket_photo_comments').select('*').eq('photo_id', photoId).order('created_at', { ascending: true });
-  if (error) { listEl.innerHTML = captionHtml + `<div style="color:rgba(255,255,255,0.5);font-size:12px">댓글 기능은 아직 설정 전이에요</div>`; return; }
-  renderPhotoComments(data || [], captionHtml);
+  if (error) { listEl.innerHTML = `<div style="color:rgba(255,255,255,0.5);font-size:12px">댓글 기능은 아직 설정 전이에요</div>`; return; }
+  renderPhotoComments(data || []);
 }
 
-function renderPhotoComments(list, captionHtml) {
+function renderPhotoComments(list) {
   const listEl = document.getElementById('lightbox-comment-list');
-  captionHtml = captionHtml || '';
-  const commentsHtml = list.map(c => `
+  if (!list.length) { listEl.innerHTML = ''; return; }
+  listEl.innerHTML = list.map(c => `
     <div class="lightbox-comment-item">
       <span class="lightbox-comment-author" style="background:${c.author_color || '#7c3aed'}">${c.author || '나'}</span>
       <span class="lightbox-comment-text">${c.text}</span>
       <button class="lightbox-comment-del" onclick="deletePhotoComment(${c.id})">✕</button>
     </div>
   `).join('');
-  listEl.innerHTML = commentsHtml + captionHtml;
   listEl.scrollTop = listEl.scrollHeight;
 }
 
@@ -1323,6 +1407,7 @@ async function deletePhotoComment(id) {
 function closeLightbox() {
   document.getElementById('lightbox-overlay').classList.remove('show');
   document.getElementById('lightbox-media').innerHTML = '';
+  document.getElementById('lightbox-caption-overlay').innerHTML = '';
   document.getElementById('lightbox-comment-list').innerHTML = '';
   document.getElementById('lightbox-comment-input').value = '';
   currentLightboxPhoto = null;
@@ -1344,72 +1429,6 @@ async function deleteCurrentPhoto() {
   closeLightbox();
   showToast('삭제됐어요');
   renderPhotos();
-}
-
-// ── 지도 ──
-function initMap() {
-  if (map) return;
-  map = L.map('map', { zoomControl: true, attributionControl: false }).setView([37.5665, 126.978], 11);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-}
-
-const catColors = { '🍽️':'#D85A30','☕':'#BA7517','🎡':'#534AB7','🛍️':'#D4537E','🌿':'#3B6D11','🎬':'#185FA5','📍':'#7c3aed' };
-
-function makeIcon(cat, visited) {
-  const color = visited ? '#bbb' : (catColors[cat] || '#7c3aed');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
-    <ellipse cx="14" cy="34" rx="5" ry="2" fill="rgba(0,0,0,0.1)"/>
-    <path d="M14 2C8.477 2 4 6.477 4 12c0 7.5 10 22 10 22S24 19.5 24 12C24 6.477 19.523 2 14 2z" fill="${color}" stroke="white" stroke-width="1.5"/>
-    <circle cx="14" cy="12" r="5" fill="white" fill-opacity="0.9"/>
-  </svg>`;
-  return L.divIcon({ html: svg, iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -38], className: '' });
-}
-
-async function geocodeAddr(addr) {
-  if (!addr) return null;
-  if (geocodeCache[addr]) return geocodeCache[addr];
-  try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr + ' 한국')}&limit=1&accept-language=ko`);
-    const data = await res.json();
-    if (data && data[0]) {
-      const c = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-      geocodeCache[addr] = c; return c;
-    }
-  } catch(e) {}
-  return null;
-}
-
-async function updateMapPins() {
-  if (!map) return;
-  markers.forEach(m => map.removeLayer(m)); markers = [];
-  const withAddr = places.filter(p => p.addr);
-  document.getElementById('map-empty').style.display = withAddr.length ? 'none' : 'flex';
-  if (!withAddr.length) return;
-  const bounds = [];
-  for (const p of places) {
-    if (!p.addr) continue;
-    const coords = p.coords || await geocodeAddr(p.addr);
-    if (coords) {
-      p.coords = coords;
-      const m = L.marker([coords.lat, coords.lng], { icon: makeIcon(p.cat, p.visited) })
-        .addTo(map)
-        .bindPopup(`<div class="popup-name">${p.cat} ${p.name}${p.visited ? ' ✅' : ''}</div><div class="popup-addr">${p.addr || ''}</div>`)
-        .on('click', () => scrollToCard(p.id));
-      markers.push(m); bounds.push([coords.lat, coords.lng]);
-    }
-  }
-  if (bounds.length) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-}
-
-function scrollToCard(id) {
-  const el = document.getElementById('card-' + id); if (!el) return;
-  el.classList.add('focused'); el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  setTimeout(() => el.classList.remove('focused'), 2000);
-}
-
-function highlightPin(id) {
-  const p = places.find(x => x.id === id);
-  if (p && p.coords && map) map.setView([p.coords.lat, p.coords.lng], 15, { animate: true });
 }
 
 function getLinkLabel(type) {
@@ -1436,7 +1455,7 @@ function renderPlaces() {
   list.innerHTML = filtered.map(p => {
     const linkHtml = p.link ? `<a class="ptag" href="${p.link}" target="_blank" rel="noopener">${getLinkLabel(p.link_type)}</a>` : '';
     return `
-    <div class="place-card ${p.visited ? 'visited' : ''}" id="card-${p.id}" onclick="highlightPin(${p.id})">
+    <div class="place-card ${p.visited ? 'visited' : ''}" id="card-${p.id}">
       <div class="cat-icon">${p.cat}</div>
       <div class="pinfo">
         <div class="pname">${p.name}${p.visited ? ' <span style="font-size:11px;color:#1D9E75;font-weight:400">✅ 다녀옴</span>' : ''}</div>
@@ -1448,6 +1467,7 @@ function renderPlaces() {
       </div>
       <div class="pactions">
         <button class="iBtn ${p.visited ? 'done' : ''}" onclick="event.stopPropagation();toggleVisited(${p.id})">${p.visited ? '☑️' : '⬜'}</button>
+        <button class="iBtn" onclick="event.stopPropagation();openCommentModal('place', ${p.id})">💬</button>
         <button class="iBtn" onclick="event.stopPropagation();openEditModal(${p.id})">✏️</button>
         <button class="iBtn" onclick="event.stopPropagation();deletePlace(${p.id})">🗑️</button>
       </div>
@@ -1464,7 +1484,7 @@ function renderMemos() {
     <div class="memo-card">
       <div class="memo-card-title">
         <span>${m.title}${m.author ? ` <span class="author-tag" style="background:${m.author_color || '#7c3aed'}">${m.author}</span>` : ''}</span>
-        <span><button class="memo-del" onclick="openMemoEditModal(${m.id})">✏️</button><button class="memo-del" onclick="deleteMemo(${m.id})">🗑️</button></span>
+        <span><button class="memo-del" onclick="openCommentModal('memo', ${m.id})">💬</button><button class="memo-del" onclick="openMemoEditModal(${m.id})">✏️</button><button class="memo-del" onclick="deleteMemo(${m.id})">🗑️</button></span>
       </div>
       <div class="memo-card-body">${m.body || ''}</div>
       <div class="memo-card-meta">${formatDate(m.created_at)}</div>
@@ -1483,12 +1503,10 @@ function openEditModal(id) {
   document.getElementById('edit-link').value = p.link || '';
   document.getElementById('edit-memo').value = p.memo || '';
   document.getElementById('edit-overlay').classList.add('show');
-  document.querySelector('.map-wrap').style.visibility = 'hidden';
 }
 
 function closeEditModal() {
   document.getElementById('edit-overlay').classList.remove('show');
-  document.querySelector('.map-wrap').style.visibility = 'visible';
 }
 
 async function saveEdit() {
@@ -1510,12 +1528,9 @@ async function saveEdit() {
   }
   Object.assign(p, updates);
   if (!sb) saveLocal();
-  // 주소 바뀌었으면 geocode 캐시 삭제
-  if (p.coords && p.addr !== addr) { delete p.coords; delete geocodeCache[addr]; }
   closeEditModal();
   showToast('수정됐어요!');
   renderPlaces();
-  updateMapPins();
 }
 
 // 모달 바깥 클릭시 닫기
@@ -1795,6 +1810,7 @@ function renderEventList() {
         ${ev.memo ? `<div class="event-memo">"${ev.memo}"</div>` : ''}
       </div>
       <div class="event-actions">
+        <button class="iBtn" onclick="openCommentModal('event', ${ev.id})">💬</button>
         <button class="iBtn" onclick="openEvEditModal(${ev.id})">✏️</button>
         <button class="iBtn" onclick="deleteEvent(${ev.id})">🗑️</button>
       </div>
@@ -1825,6 +1841,68 @@ async function saveAnniversary() {
 }
 document.getElementById('anniversary-overlay').addEventListener('click', function(e) {
   if (e.target === this) closeAnniversaryModal();
+});
+
+let currentCommentTarget = null;
+
+function openCommentModal(type, id) {
+  currentCommentTarget = { type, id };
+  document.getElementById('generic-comment-input').value = '';
+  document.getElementById('comment-modal-overlay').classList.add('show');
+  loadGenericComments();
+}
+
+function closeCommentModal() {
+  document.getElementById('comment-modal-overlay').classList.remove('show');
+  currentCommentTarget = null;
+}
+
+async function loadGenericComments() {
+  const listEl = document.getElementById('generic-comment-list');
+  if (!currentCommentTarget) return;
+  listEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted)">불러오는 중...</div>`;
+  if (!sb) { listEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted)">댓글 기능은 Supabase 연결이 필요해요</div>`; return; }
+  const { type, id } = currentCommentTarget;
+  const { data, error } = await sb.from('bucket_comments').select('*').eq('item_type', type).eq('item_id', id).order('created_at', { ascending: true });
+  if (error) { listEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted)">댓글 기능은 아직 설정 전이에요</div>`; return; }
+  renderGenericComments(data || []);
+}
+
+function renderGenericComments(list) {
+  const listEl = document.getElementById('generic-comment-list');
+  if (!list.length) { listEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted)">아직 댓글이 없어요</div>`; return; }
+  listEl.innerHTML = list.map(c => `
+    <div class="generic-comment-item">
+      <span class="generic-comment-author" style="background:${c.author_color || '#7c3aed'}">${c.author || '나'}</span>
+      <span class="generic-comment-text">${c.text}</span>
+      <button class="generic-comment-del" onclick="deleteGenericComment(${c.id})">✕</button>
+    </div>
+  `).join('');
+  listEl.scrollTop = listEl.scrollHeight;
+}
+
+async function addGenericComment() {
+  const input = document.getElementById('generic-comment-input');
+  const text = input.value.trim();
+  if (!text || !currentCommentTarget) return;
+  if (!sb) { showToast('댓글 기능은 Supabase 연결이 필요해요'); return; }
+  const author = currentUser ? currentUser.name : '나';
+  const authorColor = currentUser ? currentUser.color : '#7c3aed';
+  const { type, id } = currentCommentTarget;
+  const { error } = await sb.from('bucket_comments').insert([{ item_type: type, item_id: id, author, author_color: authorColor, text }]);
+  if (error) { showToast('댓글 저장 실패: ' + error.message); return; }
+  input.value = '';
+  loadGenericComments();
+}
+
+async function deleteGenericComment(id) {
+  if (!sb) return;
+  await sb.from('bucket_comments').delete().eq('id', id);
+  loadGenericComments();
+}
+
+document.getElementById('comment-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeCommentModal();
 });
 
 function showToast(msg) {
