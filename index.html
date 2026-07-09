@@ -355,6 +355,29 @@
     padding: 8px 18px; border-radius: 999px; font-size: 13px; cursor: pointer;
     font-family: 'Gowun Dodum', sans-serif;
   }
+  .lightbox-comments { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 8px; }
+  .lightbox-comment-list { display: flex; flex-direction: column; gap: 6px; max-height: 140px; overflow-y: auto; }
+  .lightbox-comment-item {
+    background: rgba(255,255,255,0.1); border-radius: 12px; padding: 8px 12px;
+    font-size: 13px; color: white; display: flex; gap: 8px; align-items: flex-start;
+  }
+  .lightbox-comment-author {
+    font-weight: 700; font-size: 11px; padding: 1px 8px; border-radius: 999px;
+    flex-shrink: 0; color: white; margin-top: 1px;
+  }
+  .lightbox-comment-text { flex: 1; word-break: break-word; }
+  .lightbox-comment-del { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 12px; flex-shrink: 0; }
+  .lightbox-comment-input-row { display: flex; gap: 8px; }
+  .lightbox-comment-input-row input {
+    flex: 1; padding: 9px 13px; border-radius: 999px; border: none;
+    background: rgba(255,255,255,0.15); color: white; font-family: 'Gowun Dodum', sans-serif;
+    font-size: 13px; outline: none;
+  }
+  .lightbox-comment-input-row input::placeholder { color: rgba(255,255,255,0.5); }
+  .lightbox-comment-input-row button {
+    background: var(--purple); color: white; border: none; padding: 9px 16px;
+    border-radius: 999px; font-size: 13px; cursor: pointer; font-family: 'Gowun Dodum', sans-serif;
+  }
 
   /* CALENDAR */
   .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -738,7 +761,14 @@
   <div id="lightbox-media"></div>
   <div class="lightbox-caption" id="lightbox-caption"></div>
   <div class="lightbox-meta" id="lightbox-meta"></div>
-  <button class="lightbox-del" id="lightbox-del-btn" onclick="deleteCurrentPhoto()">🗑️ 삭제</button>
+  <div class="lightbox-comments" id="lightbox-comments-wrap">
+    <div class="lightbox-comment-list" id="lightbox-comment-list"></div>
+    <div class="lightbox-comment-input-row">
+      <input type="text" id="lightbox-comment-input" placeholder="댓글 남기기..." onkeydown="if(event.key==='Enter'){event.preventDefault();addPhotoComment();}"/>
+      <button onclick="addPhotoComment()">전송</button>
+    </div>
+  </div>
+  <button class="lightbox-del" id="lightbox-del-btn" onclick="deleteCurrentPhoto()">🗑️ 사진 삭제</button>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -1218,11 +1248,55 @@ function openLightbox(id) {
   const d = new Date(p.created_at);
   document.getElementById('lightbox-meta').textContent = `${p.author || '나'} · ${photoDayLabel(p.created_at)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   document.getElementById('lightbox-overlay').classList.add('show');
+  loadPhotoComments(id);
+}
+
+async function loadPhotoComments(photoId) {
+  const listEl = document.getElementById('lightbox-comment-list');
+  listEl.innerHTML = `<div style="color:rgba(255,255,255,0.5);font-size:12px">불러오는 중...</div>`;
+  if (!sb) { listEl.innerHTML = ''; return; }
+  const { data, error } = await sb.from('bucket_photo_comments').select('*').eq('photo_id', photoId).order('created_at', { ascending: true });
+  if (error) { listEl.innerHTML = `<div style="color:rgba(255,255,255,0.5);font-size:12px">댓글 기능은 아직 설정 전이에요</div>`; return; }
+  renderPhotoComments(data || []);
+}
+
+function renderPhotoComments(list) {
+  const listEl = document.getElementById('lightbox-comment-list');
+  if (!list.length) { listEl.innerHTML = ''; return; }
+  listEl.innerHTML = list.map(c => `
+    <div class="lightbox-comment-item">
+      <span class="lightbox-comment-author" style="background:${c.author_color || '#7c3aed'}">${c.author || '나'}</span>
+      <span class="lightbox-comment-text">${c.text}</span>
+      <button class="lightbox-comment-del" onclick="deletePhotoComment(${c.id})">✕</button>
+    </div>
+  `).join('');
+  listEl.scrollTop = listEl.scrollHeight;
+}
+
+async function addPhotoComment() {
+  const input = document.getElementById('lightbox-comment-input');
+  const text = input.value.trim();
+  if (!text || !currentLightboxPhoto) return;
+  if (!sb) { showToast('댓글 기능은 Supabase 연결이 필요해요'); return; }
+  const author = currentUser ? currentUser.name : '나';
+  const authorColor = currentUser ? currentUser.color : '#7c3aed';
+  const { error } = await sb.from('bucket_photo_comments').insert([{ photo_id: currentLightboxPhoto.id, author, author_color: authorColor, text }]);
+  if (error) { showToast('댓글 저장 실패: ' + error.message); return; }
+  input.value = '';
+  loadPhotoComments(currentLightboxPhoto.id);
+}
+
+async function deletePhotoComment(id) {
+  if (!sb) return;
+  await sb.from('bucket_photo_comments').delete().eq('id', id);
+  if (currentLightboxPhoto) loadPhotoComments(currentLightboxPhoto.id);
 }
 
 function closeLightbox() {
   document.getElementById('lightbox-overlay').classList.remove('show');
   document.getElementById('lightbox-media').innerHTML = '';
+  document.getElementById('lightbox-comment-list').innerHTML = '';
+  document.getElementById('lightbox-comment-input').value = '';
   currentLightboxPhoto = null;
 }
 
