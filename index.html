@@ -278,6 +278,16 @@
     background: var(--purple-dark); color: white; border: none; width: 36px; height: 36px;
     border-radius: 50%; font-size: 14px; cursor: pointer; flex-shrink: 0;
   }
+  .inline-comments { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+  .inline-comment {
+    display: flex; align-items: flex-start; gap: 6px; background: var(--purple-light);
+    border-radius: 10px; padding: 5px 9px;
+  }
+  .inline-comment-author {
+    font-size: 9px; font-weight: 700; color: white; padding: 1px 7px;
+    border-radius: 999px; flex-shrink: 0; margin-top: 1px;
+  }
+  .inline-comment-text { flex: 1; font-size: 12px; color: var(--text); word-break: break-word; }
 
   /* EVENT TYPE TOGGLE */
   .ev-type-toggle { display: flex; gap: 8px; margin-bottom: 4px; }
@@ -840,6 +850,22 @@ let photos = [];
 let selectedPhotoFile = null;
 let currentLightboxPhoto = null;
 let settings = { anniversary_date: null };
+let allComments = [];
+
+function getItemComments(type, id) {
+  return allComments.filter(c => c.item_type === type && c.item_id === id);
+}
+
+function renderInlineComments(type, id) {
+  const list = getItemComments(type, id);
+  if (!list.length) return '';
+  return `<div class="inline-comments">${list.map(c => `
+    <div class="inline-comment">
+      <span class="inline-comment-author" style="background:${c.author_color || '#7c3aed'}">${c.author || '나'}</span>
+      <span class="inline-comment-text">${c.text}</span>
+    </div>
+  `).join('')}</div>`;
+}
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let selectedDate = null;
@@ -860,17 +886,19 @@ async function initSupabase() {
 
 async function loadAll() {
   if (sb) {
-    const [r1, r2, r3, r4] = await Promise.all([
+    const [r1, r2, r3, r4, r5] = await Promise.all([
       sb.from('bucket_places').select('*').order('created_at', { ascending: false }),
       sb.from('bucket_memos').select('*').order('created_at', { ascending: false }),
       sb.from('bucket_events').select('*').order('date', { ascending: true }),
-      sb.from('bucket_photos').select('*').order('created_at', { ascending: false })
+      sb.from('bucket_photos').select('*').order('created_at', { ascending: false }),
+      sb.from('bucket_comments').select('*').order('created_at', { ascending: true })
     ]);
     if (!r1.error) places = r1.data || [];
     if (!r2.error) memos = r2.data || [];
     if (!r3.error) events = r3.data || [];
     if (!r4.error) photos = r4.data || [];
     else console.warn('사진 로딩 실패:', r4.error.message);
+    if (!r5.error) allComments = r5.data || [];
     try {
       const { data: s } = await sb.from('bucket_settings').select('*').eq('id', 1).maybeSingle();
       if (s) settings.anniversary_date = s.anniversary_date;
@@ -1464,6 +1492,7 @@ function renderPlaces() {
         ${p.memo ? `<div class="pmemo">"${p.memo}"</div>` : ''}
         ${linkHtml ? `<div class="plinks">${linkHtml}</div>` : ''}
         <div class="pmeta">${formatDate(p.created_at)}</div>
+        ${renderInlineComments('place', p.id)}
       </div>
       <div class="pactions">
         <button class="iBtn ${p.visited ? 'done' : ''}" onclick="event.stopPropagation();toggleVisited(${p.id})">${p.visited ? '☑️' : '⬜'}</button>
@@ -1488,6 +1517,7 @@ function renderMemos() {
       </div>
       <div class="memo-card-body">${m.body || ''}</div>
       <div class="memo-card-meta">${formatDate(m.created_at)}</div>
+      ${renderInlineComments('memo', m.id)}
     </div>
   `).join('');
 }
@@ -1808,6 +1838,7 @@ function renderEventList() {
         ${ev.end_date && ev.end_date !== ev.date ? `<div class="event-time">📆 ${ev.date} ~ ${ev.end_date}</div>` : ''}
         ${ev.time ? `<div class="event-time">🕐 ${ev.time}</div>` : ''}
         ${ev.memo ? `<div class="event-memo">"${ev.memo}"</div>` : ''}
+        ${renderInlineComments('event', ev.id)}
       </div>
       <div class="event-actions">
         <button class="iBtn" onclick="openCommentModal('event', ${ev.id})">💬</button>
@@ -1845,6 +1876,12 @@ document.getElementById('anniversary-overlay').addEventListener('click', functio
 
 let currentCommentTarget = null;
 
+function refreshInlineForType(type) {
+  if (type === 'place') renderPlaces();
+  else if (type === 'memo') renderMemos();
+  else if (type === 'event') renderCal();
+}
+
 function openCommentModal(type, id) {
   currentCommentTarget = { type, id };
   document.getElementById('generic-comment-input').value = '';
@@ -1858,14 +1895,15 @@ function closeCommentModal() {
 }
 
 async function loadGenericComments() {
-  const listEl = document.getElementById('generic-comment-list');
   if (!currentCommentTarget) return;
-  listEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted)">불러오는 중...</div>`;
-  if (!sb) { listEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted)">댓글 기능은 Supabase 연결이 필요해요</div>`; return; }
   const { type, id } = currentCommentTarget;
+  const listEl = document.getElementById('generic-comment-list');
+  if (!sb) { listEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted)">댓글 기능은 Supabase 연결이 필요해요</div>`; return; }
+  listEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted)">불러오는 중...</div>`;
   const { data, error } = await sb.from('bucket_comments').select('*').eq('item_type', type).eq('item_id', id).order('created_at', { ascending: true });
   if (error) { listEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted)">댓글 기능은 아직 설정 전이에요</div>`; return; }
-  renderGenericComments(data || []);
+  allComments = allComments.filter(c => !(c.item_type === type && c.item_id === id)).concat(data || []);
+  renderGenericComments(getItemComments(type, id));
 }
 
 function renderGenericComments(list) {
@@ -1889,16 +1927,21 @@ async function addGenericComment() {
   const author = currentUser ? currentUser.name : '나';
   const authorColor = currentUser ? currentUser.color : '#7c3aed';
   const { type, id } = currentCommentTarget;
-  const { error } = await sb.from('bucket_comments').insert([{ item_type: type, item_id: id, author, author_color: authorColor, text }]);
-  if (error) { showToast('댓글 저장 실패: ' + error.message); return; }
   input.value = '';
-  loadGenericComments();
+  const { data, error } = await sb.from('bucket_comments').insert([{ item_type: type, item_id: id, author, author_color: authorColor, text }]).select().single();
+  if (error) { showToast('댓글 저장 실패: ' + error.message); return; }
+  allComments.push(data);
+  renderGenericComments(getItemComments(type, id));
+  refreshInlineForType(type);
 }
 
 async function deleteGenericComment(id) {
-  if (!sb) return;
+  if (!sb || !currentCommentTarget) return;
+  const { type } = currentCommentTarget;
+  allComments = allComments.filter(c => c.id !== id);
+  renderGenericComments(getItemComments(currentCommentTarget.type, currentCommentTarget.id));
+  refreshInlineForType(type);
   await sb.from('bucket_comments').delete().eq('id', id);
-  loadGenericComments();
 }
 
 document.getElementById('comment-modal-overlay').addEventListener('click', function(e) {
