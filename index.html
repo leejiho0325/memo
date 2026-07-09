@@ -370,12 +370,16 @@
     overflow-y: auto; pointer-events: auto;
   }
   .lightbox-comment-item {
-    display: flex; align-items: baseline; gap: 6px; padding: 1px 2px;
+    display: flex; align-items: baseline; gap: 5px; padding: 1px 2px; flex-wrap: wrap;
   }
   .lightbox-caption-item .lightbox-comment-text { font-size: 20px; font-weight: 400; }
+  .lightbox-comment-arrow {
+    color: rgba(255,255,255,0.5); font-size: 13px; flex-shrink: 0;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  }
   .lightbox-comment-author {
-    font-family: 'Gowun Dodum', sans-serif; font-weight: 700; font-size: 10px;
-    padding: 1px 7px; border-radius: 999px; flex-shrink: 0; color: white;
+    font-family: 'Gowun Dodum', sans-serif; font-weight: 700; font-size: 12px;
+    flex-shrink: 0; text-shadow: 0 1px 4px rgba(0,0,0,0.6);
   }
   .lightbox-comment-text {
     flex: 1; word-break: break-word; color: white;
@@ -783,7 +787,7 @@
   <div class="lightbox-meta" id="lightbox-meta"></div>
   <div class="lightbox-comment-input-row">
     <input type="text" id="lightbox-comment-input" placeholder="이 순간에 한마디..." onkeydown="if(event.key==='Enter'){event.preventDefault();addPhotoComment();}"/>
-    <button onclick="addPhotoComment()">✎</button>
+    <button onclick="addPhotoComment()">➤</button>
   </div>
   <button class="lightbox-del" id="lightbox-del-btn" onclick="deleteCurrentPhoto()">🗑️ 사진 삭제</button>
 </div>
@@ -1285,7 +1289,8 @@ function renderPhotoComments(list, captionHtml) {
   captionHtml = captionHtml || '';
   const commentsHtml = list.map(c => `
     <div class="lightbox-comment-item">
-      <span class="lightbox-comment-author" style="background:${c.author_color || '#7c3aed'}">${c.author || '나'}</span>
+      <span class="lightbox-comment-arrow">›</span>
+      <span class="lightbox-comment-author" style="color:${c.author_color || '#c4b5fd'}">${c.author || '나'}</span>
       <span class="lightbox-comment-text">${c.text}</span>
       <button class="lightbox-comment-del" onclick="deletePhotoComment(${c.id})">✕</button>
     </div>
