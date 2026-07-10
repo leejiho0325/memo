@@ -609,8 +609,7 @@
           </select>
         </div>
       </div>
-      <div class="field-label">주소 / 지역</div>
-      <input type="text" id="inp-addr" placeholder="예: 서울 마포구 연남동"/>
+      <input type="hidden" id="inp-addr"/>
       <div class="field-label">메모</div>
       <textarea id="inp-memo" placeholder="메모..." style="height:52px"></textarea>
       <button class="btn-save" onclick="addPlace()">저장하기</button>
@@ -722,8 +721,7 @@
       <option value="🎬">🎬 문화</option>
       <option value="📍">📍 기타</option>
     </select>
-    <div class="field-label">주소 / 지역</div>
-    <input type="text" id="edit-addr" placeholder="예: 서울 마포구 연남동"/>
+    <input type="hidden" id="edit-addr"/>
     <div class="field-label">링크</div>
     <input type="text" id="edit-link" placeholder="https://..."/>
     <div class="field-label">메모</div>
@@ -1481,17 +1479,12 @@ function renderPlaces() {
     list.innerHTML = `<div class="empty-state"><span class="big">🗺️</span>아직 장소가 없어요</div>`; return;
   }
   list.innerHTML = filtered.map(p => {
-    const linkHtml = p.link ? `<a class="ptag" href="${p.link}" target="_blank" rel="noopener">${getLinkLabel(p.link_type)}</a>` : '';
     return `
     <div class="place-card ${p.visited ? 'visited' : ''}" id="card-${p.id}">
       <div class="cat-icon">${p.cat}</div>
       <div class="pinfo">
         <div class="pname">${p.name}${p.visited ? ' <span style="font-size:11px;color:#1D9E75;font-weight:400">✅ 다녀옴</span>' : ''}</div>
-        ${p.author ? `<span class="author-tag" style="background:${p.author_color || '#7c3aed'}">${p.author}</span>` : ''}
-        ${p.addr ? `<div class="paddr">📍 ${p.addr}</div>` : ''}
         ${p.memo ? `<div class="pmemo">"${p.memo}"</div>` : ''}
-        ${linkHtml ? `<div class="plinks">${linkHtml}</div>` : ''}
-        <div class="pmeta">${formatDate(p.created_at)}</div>
         ${renderInlineComments('place', p.id)}
       </div>
       <div class="pactions">
