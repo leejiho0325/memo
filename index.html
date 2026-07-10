@@ -23,6 +23,49 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Gowun Dodum', sans-serif; background: var(--purple-bg); color: var(--text); min-height: 100vh; }
 
+  /* QUIZ */
+  .quiz-score {
+    text-align: center; font-size: 13px; color: var(--text-muted);
+    background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px; margin-bottom: 14px;
+  }
+  .quiz-score b { color: var(--purple-dark); font-weight: 800; }
+  .quiz-list { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-card {
+    background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px;
+  }
+  .quiz-question { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .quiz-status-badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px;
+    border-radius: 999px; margin-left: 6px;
+  }
+  .quiz-status-badge.correct { background: #d1fae5; color: #059669; }
+  .quiz-status-badge.wrong { background: #fee2e2; color: #dc2626; }
+  .quiz-status-badge.waiting { background: var(--purple-light); color: var(--purple-dark); }
+  .quiz-guess-row { display: flex; gap: 8px; margin-top: 8px; }
+  .quiz-guess-row input {
+    flex: 1; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--purple-light); font-family: 'Gowun Dodum', sans-serif; font-size: 13px; outline: none;
+  }
+  .quiz-guess-row button {
+    background: var(--purple-dark); color: white; border: none; padding: 8px 16px;
+    border-radius: 10px; font-size: 13px; cursor: pointer; font-family: 'Gowun Dodum', sans-serif;
+  }
+  .quiz-guess-shown { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+  .quiz-answer-shown { font-size: 13px; color: var(--purple-dark); font-weight: 700; margin-top: 4px; }
+  .quiz-actions-row { display: flex; gap: 8px; margin-top: 10px; }
+  .quiz-actions-row button {
+    flex: 1; padding: 7px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--purple-light); color: var(--text-muted); font-size: 12px; cursor: pointer;
+    font-family: 'Gowun Dodum', sans-serif;
+  }
+  .quiz-meta-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .quiz-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 13px; }
+  .quiz-done-label {
+    font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 16px 0 4px; padding-top: 10px;
+    border-top: 1px dashed var(--border);
+  }
+
   /* HOME */
   .home-hero {
     background: linear-gradient(135deg, var(--purple), var(--purple-dark));
@@ -570,6 +613,7 @@
     <button class="tab-btn" data-tab="memo" onclick="switchTab('memo', this)">📝 메모</button>
     <button class="tab-btn" data-tab="photos" onclick="switchTab('photos', this)">📷 로그</button>
     <button class="tab-btn" data-tab="cal" onclick="switchTab('cal', this)">📅 일정</button>
+    <button class="tab-btn" data-tab="quiz" onclick="switchTab('quiz', this)">❓ 퀴즈</button>
   </div>
 </header>
 
@@ -586,6 +630,7 @@
       <div class="home-card" data-tab="memo" onclick="goTab('memo')"><span class="home-card-dot"></span><span class="home-card-icon">📝</span><span class="home-card-label">메모</span></div>
       <div class="home-card" data-tab="photos" onclick="goTab('photos')"><span class="home-card-dot"></span><span class="home-card-icon">📷</span><span class="home-card-label">로그</span></div>
       <div class="home-card" data-tab="cal" onclick="goTab('cal')"><span class="home-card-dot"></span><span class="home-card-icon">📅</span><span class="home-card-label">일정</span></div>
+      <div class="home-card" data-tab="quiz" onclick="goTab('quiz')"><span class="home-card-dot"></span><span class="home-card-icon">❓</span><span class="home-card-label">퀴즈</span></div>
     </div>
     <div class="home-streak" id="home-streak"></div>
     <div id="home-preview"></div>
@@ -708,6 +753,20 @@
 
     <div id="event-list-title" style="font-size:13px;font-weight:700;color:var(--purple-dark);margin-bottom:10px;display:none"></div>
     <div class="event-list" id="event-list"></div>
+  </div>
+
+  <!-- 퀴즈 탭 -->
+  <div class="panel" id="panel-quiz">
+    <div class="add-box">
+      <div class="add-box-title">❓ 문제 내기</div>
+      <div class="field-label">문제</div>
+      <textarea id="quiz-question" placeholder="예: 우리 처음 만난 날 내가 입었던 옷 색깔은?" style="height:56px"></textarea>
+      <div class="field-label">정답 (상대방한텐 안 보여요)</div>
+      <input type="text" id="quiz-answer" placeholder="정답 입력"/>
+      <button class="btn-save" onclick="addQuiz()">출제하기</button>
+    </div>
+    <div class="quiz-score" id="quiz-score"></div>
+    <div class="quiz-list" id="quiz-list"></div>
   </div>
 </main>
 
@@ -856,6 +915,8 @@ let selectedPhotoFile = null;
 let currentLightboxPhoto = null;
 let settings = { anniversary_date: null };
 let allComments = [];
+let quizzes = [];
+let openedQuizIds = new Set();
 
 function getItemComments(type, id) {
   return allComments.filter(c => c.item_type === type && c.item_id === id);
@@ -891,12 +952,13 @@ async function initSupabase() {
 
 async function loadAll() {
   if (sb) {
-    const [r1, r2, r3, r4, r5] = await Promise.all([
+    const [r1, r2, r3, r4, r5, r6] = await Promise.all([
       sb.from('bucket_places').select('*').order('created_at', { ascending: false }),
       sb.from('bucket_memos').select('*').order('created_at', { ascending: false }),
       sb.from('bucket_events').select('*').order('date', { ascending: true }),
       sb.from('bucket_photos').select('*').order('created_at', { ascending: false }),
-      sb.from('bucket_comments').select('*').order('created_at', { ascending: true })
+      sb.from('bucket_comments').select('*').order('created_at', { ascending: true }),
+      sb.from('bucket_quiz').select('*').order('created_at', { ascending: false })
     ]);
     if (!r1.error) places = r1.data || [];
     if (!r2.error) memos = r2.data || [];
@@ -904,6 +966,7 @@ async function loadAll() {
     if (!r4.error) photos = r4.data || [];
     else console.warn('사진 로딩 실패:', r4.error.message);
     if (!r5.error) allComments = r5.data || [];
+    if (!r6.error) quizzes = r6.data || [];
     try {
       const { data: s } = await sb.from('bucket_settings').select('*').eq('id', 1).maybeSingle();
       if (s) settings.anniversary_date = s.anniversary_date;
@@ -918,6 +981,7 @@ async function loadAll() {
   renderMemos();
   renderCal();
   renderPhotos();
+  renderQuiz();
   renderHome();
   updateNewBadges();
 }
@@ -960,7 +1024,7 @@ function goTab(tab) {
 }
 
 function updateNewBadges() {
-  const categories = { places, memo: memos, photos, cal: events };
+  const categories = { places, memo: memos, photos, cal: events, quiz: quizzes };
   const myName = currentUser ? currentUser.name : null;
   Object.keys(categories).forEach(tab => {
     const items = categories[tab] || [];
@@ -1948,6 +2012,161 @@ async function deleteGenericComment(id) {
 document.getElementById('comment-modal-overlay').addEventListener('click', function(e) {
   if (e.target === this) closeCommentModal();
 });
+
+// ── 퀴즈 ──
+async function addQuiz() {
+  const question = document.getElementById('quiz-question').value.trim();
+  const answer = document.getElementById('quiz-answer').value.trim();
+  if (!question || !answer) { showToast('문제와 정답을 둘 다 입력해줘'); return; }
+  const author = currentUser ? currentUser.name : '나';
+  const authorColor = currentUser ? currentUser.color : '#7c3aed';
+  const newQuiz = {
+    question, answer, guess: null, guesser: null, guesser_color: null,
+    revealed: false, is_correct: null, author, author_color: authorColor
+  };
+  if (sb) {
+    const { data, error } = await sb.from('bucket_quiz').insert([newQuiz]).select().single();
+    if (error) { showToast('출제 실패: ' + error.message); return; }
+    quizzes.unshift(data);
+  } else {
+    newQuiz.id = Date.now(); newQuiz.created_at = new Date().toISOString();
+    quizzes.unshift(newQuiz);
+  }
+  document.getElementById('quiz-question').value = '';
+  document.getElementById('quiz-answer').value = '';
+  showToast('문제 출제됐어요!');
+  renderQuiz();
+}
+
+function openQuizQuestion(id) {
+  openedQuizIds.add(id);
+  renderQuiz();
+}
+
+async function submitGuess(id) {
+  const input = document.getElementById(`quiz-guess-input-${id}`);
+  const guess = input.value.trim();
+  if (!guess) return;
+  const guesser = currentUser ? currentUser.name : '나';
+  const guesserColor = currentUser ? currentUser.color : '#7c3aed';
+  const updates = { guess, guesser, guesser_color: guesserColor, revealed: true };
+  if (sb) {
+    const { error } = await sb.from('bucket_quiz').update(updates).eq('id', id);
+    if (error) { showToast('제출 실패: ' + error.message); return; }
+  }
+  const q = quizzes.find(x => x.id === id);
+  if (q) Object.assign(q, updates);
+  showToast('정답 확인해봐!');
+  renderQuiz();
+}
+
+async function markCorrect(id, isCorrect) {
+  const q = quizzes.find(x => x.id === id);
+  if (!q) return;
+  if (sb) {
+    const { error } = await sb.from('bucket_quiz').update({ is_correct: isCorrect }).eq('id', id);
+    if (error) { showToast('저장 실패: ' + error.message); return; }
+  }
+  q.is_correct = isCorrect;
+  renderQuiz();
+}
+
+async function deleteQuiz(id) {
+  if (!confirm('삭제할까요?')) return;
+  if (sb) await sb.from('bucket_quiz').delete().eq('id', id);
+  quizzes = quizzes.filter(x => x.id !== id);
+  openedQuizIds.delete(id);
+  renderQuiz();
+}
+
+function renderQuiz() {
+  const scoreEl = document.getElementById('quiz-score');
+  const listEl = document.getElementById('quiz-list');
+  if (!listEl) return;
+
+  const scoreMap = {};
+  quizzes.forEach(q => {
+    if (q.is_correct !== null && q.guesser) {
+      if (!scoreMap[q.guesser]) scoreMap[q.guesser] = { correct: 0, total: 0, color: q.guesser_color };
+      scoreMap[q.guesser].total++;
+      if (q.is_correct) scoreMap[q.guesser].correct++;
+    }
+  });
+  const names = Object.keys(scoreMap);
+  scoreEl.innerHTML = names.length
+    ? names.map(n => `<span style="color:${scoreMap[n].color || '#7c3aed'}"><b>${n}</b> ${scoreMap[n].correct}/${scoreMap[n].total} 정답</span>`).join('   ·   ')
+    : '아직 채점된 문제가 없어요';
+
+  if (!quizzes.length) {
+    listEl.innerHTML = `<div class="empty-state"><span class="big">❓</span>아직 낸 문제가 없어요</div>`;
+    return;
+  }
+
+  const myName = currentUser ? currentUser.name : null;
+  const active = quizzes.filter(q => q.is_correct === null);
+  const done = quizzes.filter(q => q.is_correct !== null);
+
+  function renderCard(q) {
+    const isAuthor = myName && q.author === myName;
+    const isOpened = openedQuizIds.has(q.id);
+
+    let statusBadge = '';
+    if (q.is_correct === true) statusBadge = `<span class="quiz-status-badge correct">✅ 정답</span>`;
+    else if (q.is_correct === false) statusBadge = `<span class="quiz-status-badge wrong">❌ 오답</span>`;
+    else if (q.guess) statusBadge = `<span class="quiz-status-badge waiting">채점 대기</span>`;
+    else statusBadge = `<span class="quiz-status-badge waiting">답변 기다리는 중</span>`;
+
+    // 출제자가 아니고, 아직 안 풀고, 안 열어봤으면 문제를 가림
+    if (!isAuthor && !q.guess && !isOpened) {
+      return `
+      <div class="quiz-card">
+        <div class="quiz-question">❓ 새로운 문제가 있어요!${statusBadge}</div>
+        <div class="quiz-actions-row">
+          <button onclick="openQuizQuestion(${q.id})">🔎 맞추기</button>
+        </div>
+        <div class="quiz-meta-row">
+          <span class="author-tag" style="background:${q.author_color || '#7c3aed'}">${q.author || '나'} 출제</span>
+          <button class="quiz-del" onclick="deleteQuiz(${q.id})">🗑️</button>
+        </div>
+      </div>`;
+    }
+
+    let body = '';
+    if (!q.guess) {
+      body = `
+        <div class="quiz-guess-row">
+          <input type="text" id="quiz-guess-input-${q.id}" placeholder="정답이라고 생각하는 거 입력..." onkeydown="if(event.key==='Enter'){event.preventDefault();submitGuess(${q.id});}"/>
+          <button onclick="submitGuess(${q.id})">제출</button>
+        </div>`;
+    } else {
+      body = `
+        <div class="quiz-guess-shown">💭 ${q.guesser}의 답: "${q.guess}"</div>
+        <div class="quiz-answer-shown">✔️ 정답: ${q.answer}</div>
+        ${q.is_correct === null ? `
+        <div class="quiz-actions-row">
+          <button onclick="markCorrect(${q.id}, true)">✅ 정답 처리</button>
+          <button onclick="markCorrect(${q.id}, false)">❌ 오답 처리</button>
+        </div>` : ''}`;
+    }
+
+    return `
+    <div class="quiz-card">
+      <div class="quiz-question">${q.question}${statusBadge}</div>
+      ${body}
+      <div class="quiz-meta-row">
+        <span class="author-tag" style="background:${q.author_color || '#7c3aed'}">${q.author || '나'} 출제</span>
+        <button class="quiz-del" onclick="deleteQuiz(${q.id})">🗑️</button>
+      </div>
+    </div>`;
+  }
+
+  let html = active.map(renderCard).join('');
+  if (done.length) {
+    html += `<div class="quiz-done-label">✔️ 완료된 문제</div>`;
+    html += done.map(renderCard).join('');
+  }
+  listEl.innerHTML = html;
+}
 
 function showToast(msg) {
   const t = document.getElementById('toast');
