@@ -181,9 +181,16 @@
   .iBtn {
     background: none; border: none; cursor: pointer; font-size: 17px;
     color: var(--text-muted); padding: 4px; border-radius: 8px; line-height: 1;
+    display: inline-block; text-decoration: none;
   }
   .iBtn:hover { background: var(--purple-light); }
   .iBtn.done { color: var(--green); }
+  .place-map-link {
+    display: inline-flex; align-items: center; gap: 3px; margin-top: 6px;
+    background: var(--purple-light); color: var(--purple-dark); font-weight: 700;
+    font-size: 12px; padding: 5px 12px; border-radius: 999px; text-decoration: none;
+  }
+  .place-map-link:hover { background: var(--border); }
 
   /* MEMO TAB */
   .memo-list { display: flex; flex-direction: column; gap: 10px; }
@@ -1485,6 +1492,7 @@ function renderPlaces() {
       <div class="pinfo">
         <div class="pname">${p.name}${p.visited ? ' <span style="font-size:11px;color:#1D9E75;font-weight:400">✅ 다녀옴</span>' : ''}</div>
         ${p.memo ? `<div class="pmemo">"${p.memo}"</div>` : ''}
+        ${p.link ? `<a class="place-map-link" href="${p.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${getLinkLabel(p.link_type)}에서 보기 ›</a>` : ''}
         ${renderInlineComments('place', p.id)}
       </div>
       <div class="pactions">
