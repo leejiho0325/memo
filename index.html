@@ -23,6 +23,31 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Gowun Dodum', sans-serif; background: var(--purple-bg); color: var(--text); min-height: 100vh; }
 
+  /* BUCKET LIST */
+  .bucket-progress {
+    background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 14px;
+  }
+  .bucket-progress-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .bucket-progress-bar { height: 8px; background: var(--purple-light); border-radius: 999px; overflow: hidden; }
+  .bucket-progress-fill { height: 100%; background: linear-gradient(135deg, var(--purple), var(--purple-dark)); border-radius: 999px; transition: width 0.3s; }
+  .bucket-list { display: flex; flex-direction: column; gap: 10px; }
+  .bucket-item {
+    background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+    padding: 13px 15px; display: flex; align-items: flex-start; gap: 11px;
+  }
+  .bucket-item.done { opacity: 0.5; }
+  .bucket-item.done .bucket-title { text-decoration: line-through; }
+  .bucket-check {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border);
+    background: none; cursor: pointer; flex-shrink: 0; margin-top: 1px; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; color: white;
+  }
+  .bucket-item.done .bucket-check { background: var(--green); border-color: var(--green); }
+  .bucket-info { flex: 1; min-width: 0; }
+  .bucket-title { font-size: 14px; font-weight: 700; color: var(--text); }
+  .bucket-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
   /* QUIZ */
   .quiz-score {
     text-align: center; font-size: 13px; color: var(--text-muted);
@@ -260,9 +285,10 @@
   .toast.show { transform: translateX(-50%) translateY(0); }
 
   @media (max-width: 600px) {
-    header { padding: 12px 14px; gap: 8px; }
+    header { padding: 12px 14px; gap: 8px; flex-wrap: wrap; }
     header h1 { font-size: 15px; }
-    .tab-btn { padding: 5px 9px; font-size: 11px; }
+    .tabs { order: 3; flex-basis: 100%; margin-left: 0; margin-top: 4px; justify-content: flex-start; }
+    .tab-btn { padding: 6px 10px; font-size: 12px; }
     main { padding: 14px 12px 60px; }
     .add-box { padding: 14px; }
     .row2 { flex-direction: column; gap: 6px; }
@@ -614,6 +640,7 @@
     <button class="tab-btn" data-tab="photos" onclick="switchTab('photos', this)">📷 로그</button>
     <button class="tab-btn" data-tab="cal" onclick="switchTab('cal', this)">📅 일정</button>
     <button class="tab-btn" data-tab="quiz" onclick="switchTab('quiz', this)">❓ 퀴즈</button>
+    <button class="tab-btn" data-tab="bucket" onclick="switchTab('bucket', this)">🎯 버킷</button>
   </div>
 </header>
 
@@ -631,6 +658,7 @@
       <div class="home-card" data-tab="photos" onclick="goTab('photos')"><span class="home-card-dot"></span><span class="home-card-icon">📷</span><span class="home-card-label">로그</span></div>
       <div class="home-card" data-tab="cal" onclick="goTab('cal')"><span class="home-card-dot"></span><span class="home-card-icon">📅</span><span class="home-card-label">일정</span></div>
       <div class="home-card" data-tab="quiz" onclick="goTab('quiz')"><span class="home-card-dot"></span><span class="home-card-icon">❓</span><span class="home-card-label">퀴즈</span></div>
+      <div class="home-card" data-tab="bucket" onclick="goTab('bucket')"><span class="home-card-dot"></span><span class="home-card-icon">🎯</span><span class="home-card-label">버킷</span></div>
     </div>
     <div class="home-streak" id="home-streak"></div>
     <div id="home-preview"></div>
@@ -767,6 +795,18 @@
     </div>
     <div class="quiz-score" id="quiz-score"></div>
     <div class="quiz-list" id="quiz-list"></div>
+  </div>
+
+  <!-- 버킷리스트 탭 -->
+  <div class="panel" id="panel-bucket">
+    <div class="add-box">
+      <div class="add-box-title">🎯 같이 하고 싶은 것</div>
+      <div class="field-label">내용</div>
+      <input type="text" id="bucket-title" placeholder="예: 같이 번지점프 하기"/>
+      <button class="btn-save" onclick="addBucketItem()">추가하기</button>
+    </div>
+    <div class="bucket-progress" id="bucket-progress"></div>
+    <div class="bucket-list" id="bucket-list"></div>
   </div>
 </main>
 
@@ -916,6 +956,7 @@ let currentLightboxPhoto = null;
 let settings = { anniversary_date: null };
 let allComments = [];
 let quizzes = [];
+let bucketList = [];
 let openedQuizIds = new Set();
 
 function getItemComments(type, id) {
@@ -952,13 +993,14 @@ async function initSupabase() {
 
 async function loadAll() {
   if (sb) {
-    const [r1, r2, r3, r4, r5, r6] = await Promise.all([
+    const [r1, r2, r3, r4, r5, r6, r7] = await Promise.all([
       sb.from('bucket_places').select('*').order('created_at', { ascending: false }),
       sb.from('bucket_memos').select('*').order('created_at', { ascending: false }),
       sb.from('bucket_events').select('*').order('date', { ascending: true }),
       sb.from('bucket_photos').select('*').order('created_at', { ascending: false }),
       sb.from('bucket_comments').select('*').order('created_at', { ascending: true }),
-      sb.from('bucket_quiz').select('*').order('created_at', { ascending: false })
+      sb.from('bucket_quiz').select('*').order('created_at', { ascending: false }),
+      sb.from('bucket_bucketlist').select('*').order('created_at', { ascending: false })
     ]);
     if (!r1.error) places = r1.data || [];
     if (!r2.error) memos = r2.data || [];
@@ -967,6 +1009,7 @@ async function loadAll() {
     else console.warn('사진 로딩 실패:', r4.error.message);
     if (!r5.error) allComments = r5.data || [];
     if (!r6.error) quizzes = r6.data || [];
+    if (!r7.error) bucketList = r7.data || [];
     try {
       const { data: s } = await sb.from('bucket_settings').select('*').eq('id', 1).maybeSingle();
       if (s) settings.anniversary_date = s.anniversary_date;
@@ -982,6 +1025,7 @@ async function loadAll() {
   renderCal();
   renderPhotos();
   renderQuiz();
+  renderBucketList();
   renderHome();
   updateNewBadges();
 }
@@ -1024,7 +1068,7 @@ function goTab(tab) {
 }
 
 function updateNewBadges() {
-  const categories = { places, memo: memos, photos, cal: events, quiz: quizzes };
+  const categories = { places, memo: memos, photos, cal: events, quiz: quizzes, bucket: bucketList };
   const myName = currentUser ? currentUser.name : null;
   Object.keys(categories).forEach(tab => {
     const items = categories[tab] || [];
@@ -1945,6 +1989,7 @@ function refreshInlineForType(type) {
   if (type === 'place') renderPlaces();
   else if (type === 'memo') renderMemos();
   else if (type === 'event') renderCal();
+  else if (type === 'bucket') renderBucketList();
 }
 
 function openCommentModal(type, id) {
@@ -2166,6 +2211,76 @@ function renderQuiz() {
     html += done.map(renderCard).join('');
   }
   listEl.innerHTML = html;
+}
+
+// ── 버킷리스트 ──
+async function addBucketItem() {
+  const title = document.getElementById('bucket-title').value.trim();
+  if (!title) { showToast('내용을 입력해줘'); return; }
+  const author = currentUser ? currentUser.name : '나';
+  const authorColor = currentUser ? currentUser.color : '#7c3aed';
+  const newItem = { title, done: false, author, author_color: authorColor };
+  if (sb) {
+    const { data, error } = await sb.from('bucket_bucketlist').insert([newItem]).select().single();
+    if (error) { showToast('저장 실패: ' + error.message); return; }
+    bucketList.unshift(data);
+  } else {
+    newItem.id = Date.now(); newItem.created_at = new Date().toISOString();
+    bucketList.unshift(newItem);
+  }
+  document.getElementById('bucket-title').value = '';
+  showToast('추가됐어요!');
+  renderBucketList();
+}
+
+async function toggleBucketDone(id) {
+  const item = bucketList.find(x => x.id === id);
+  if (!item) return;
+  item.done = !item.done;
+  if (sb) await sb.from('bucket_bucketlist').update({ done: item.done }).eq('id', id);
+  renderBucketList();
+}
+
+async function deleteBucketItem(id) {
+  if (!confirm('삭제할까요?')) return;
+  if (sb) await sb.from('bucket_bucketlist').delete().eq('id', id);
+  bucketList = bucketList.filter(x => x.id !== id);
+  renderBucketList();
+}
+
+function renderBucketList() {
+  const progressEl = document.getElementById('bucket-progress');
+  const listEl = document.getElementById('bucket-list');
+  if (!listEl) return;
+
+  const total = bucketList.length;
+  const doneCount = bucketList.filter(x => x.done).length;
+  const pct = total ? Math.round((doneCount / total) * 100) : 0;
+  progressEl.innerHTML = `
+    <div class="bucket-progress-label"><span>완료한 것</span><span><b style="color:var(--purple-dark)">${doneCount}</b> / ${total}</span></div>
+    <div class="bucket-progress-bar"><div class="bucket-progress-fill" style="width:${pct}%"></div></div>
+  `;
+
+  if (!total) {
+    listEl.innerHTML = `<div class="empty-state"><span class="big">🎯</span>아직 목록이 없어요</div>`;
+    return;
+  }
+
+  const sorted = bucketList.slice().sort((a,b) => (a.done === b.done) ? 0 : (a.done ? 1 : -1));
+  listEl.innerHTML = sorted.map(item => `
+    <div class="bucket-item ${item.done ? 'done' : ''}">
+      <button class="bucket-check" onclick="toggleBucketDone(${item.id})">${item.done ? '✓' : ''}</button>
+      <div class="bucket-info">
+        <div class="bucket-title">${item.title}</div>
+        ${item.author ? `<span class="author-tag" style="background:${item.author_color || '#7c3aed'}">${item.author}</span>` : ''}
+        ${renderInlineComments('bucket', item.id)}
+      </div>
+      <div class="pactions">
+        <button class="iBtn" onclick="openCommentModal('bucket', ${item.id})">💬</button>
+        <button class="iBtn" onclick="deleteBucketItem(${item.id})">🗑️</button>
+      </div>
+    </div>
+  `).join('');
 }
 
 function showToast(msg) {
